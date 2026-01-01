@@ -370,7 +370,6 @@ class SupabaseAuthBridgeFront {
         }
 
         // 2. WordPressユーザーの検索・同期
-        // [修正] EmailではなくSupabase UUIDで検索 (メール変更対応)
         $user_query = get_users(array(
             'meta_key' => 'supabase_uuid',
             'meta_value' => $uuid,
@@ -380,12 +379,13 @@ class SupabaseAuthBridgeFront {
 
         $user = !empty($user_query) ? $user_query[0] : null;
         $user_id = 0;
+        $is_new_user = false;
 
         if ($user) {
             // 既存ユーザーが見つかった場合
             $user_id = $user->ID;
 
-            // [セキュリティ] 管理者権限を持つユーザーは自動連携ログインを拒否 (乗っ取り防止)
+            // [セキュリティ] 管理者権限を持つユーザーは自動連携ログインを拒否
             if (user_can($user, 'manage_options')) {
                 return new WP_Error('forbidden', __('Administrator login via Supabase is disabled for security.', 'supabase-auth-bridge'), array('status' => 403));
             }
@@ -398,7 +398,7 @@ class SupabaseAuthBridgeFront {
                 }
             }
         } else {
-            // UUIDで見つからない場合、Emailで再検索 (初回連携 or 既存WPユーザーとの紐づけ)
+            // UUIDで見つからない場合、Emailで再検索
             $user_by_email = get_user_by('email', $email);
 
             if ($user_by_email) {
@@ -421,14 +421,43 @@ class SupabaseAuthBridgeFront {
                     return $user_id;
                 }
 
-                // 権限設定 (購読者)
+                $is_new_user = true;
+
+                // 権限設定 (デフォルト: subscriber)
+                // [HOOK] デフォルト権限を変更できるフィルター
+                $role = apply_filters('supabase_auth_bridge_user_role', 'subscriber', $user_data);
+
                 $user_obj = new WP_User($user_id);
-                $user_obj->set_role('subscriber');
+                $user_obj->set_role($role);
 
                 // UUID保存
                 update_user_meta($user_id, 'supabase_uuid', $uuid);
+
+                // 登録完了サンクスメールの送信
+                $blog_name = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
+                $subject = sprintf(__('[%s] Registration Complete', 'supabase-auth-bridge'), $blog_name);
+                $message = sprintf(
+                    __('Hi,
+
+Thanks for registering at %s.
+Your account has been successfully created.
+
+You can login here: %s
+
+Thanks,
+%s', 'supabase-auth-bridge'),
+                    $blog_name,
+                    home_url(),
+                    $blog_name
+                );
+
+                wp_mail($email, $subject, $message);
             }
         }
+
+        // [HOOK] 同期完了後のアクションフック (メタデータの保存などに利用可能)
+        // 引数: WPユーザーID, Supabaseユーザーデータ(オブジェクト), 新規登録フラグ
+        do_action('supabase_auth_bridge_after_user_sync', $user_id, $user_data, $is_new_user);
 
         // 3. ログイン処理
         wp_clear_auth_cookie();

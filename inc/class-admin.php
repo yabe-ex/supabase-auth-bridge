@@ -22,9 +22,10 @@ class SupabaseAuthBridgeAdmin {
 
     function register_settings() {
         // --- 1. API設定 ---
-        register_setting($this->option_group, 'sab_supabase_url');
-        register_setting($this->option_group, 'sab_supabase_anon_key');
-        register_setting($this->option_group, 'sab_supabase_service_role_key');
+        // [修正] サニタイズコールバックを追加
+        register_setting($this->option_group, 'sab_supabase_url', array('sanitize_callback' => 'esc_url_raw'));
+        register_setting($this->option_group, 'sab_supabase_anon_key', array('sanitize_callback' => 'sanitize_text_field'));
+        register_setting($this->option_group, 'sab_supabase_service_role_key', array('sanitize_callback' => 'sanitize_text_field'));
 
         add_settings_section(
             'sab_general_section',
@@ -39,7 +40,7 @@ class SupabaseAuthBridgeAdmin {
 
 
         // --- 2. デザイン・機能設定 ---
-        register_setting($this->option_group, 'sab_main_color');
+        register_setting($this->option_group, 'sab_main_color', array('sanitize_callback' => 'sanitize_hex_color'));
         register_setting($this->option_group, 'sab_auth_method_email');
         register_setting($this->option_group, 'sab_auth_method_google');
         register_setting($this->option_group, 'sab_auth_method_magiclink');
@@ -56,10 +57,11 @@ class SupabaseAuthBridgeAdmin {
 
 
         // --- 3. リダイレクト設定 ---
-        register_setting($this->option_group, 'sab_redirect_after_login');
-        register_setting($this->option_group, 'sab_redirect_after_logout');
-        register_setting($this->option_group, 'sab_forgot_password_url');
-        register_setting($this->option_group, 'sab_password_reset_url');
+        // [修正] URLパス用のサニタイズ (sanitize_text_field で十分だが、入力ミス防止のため)
+        register_setting($this->option_group, 'sab_redirect_after_login', array('sanitize_callback' => 'sanitize_text_field'));
+        register_setting($this->option_group, 'sab_redirect_after_logout', array('sanitize_callback' => 'sanitize_text_field'));
+        register_setting($this->option_group, 'sab_forgot_password_url', array('sanitize_callback' => 'sanitize_text_field'));
+        register_setting($this->option_group, 'sab_password_reset_url', array('sanitize_callback' => 'sanitize_text_field'));
 
         add_settings_section(
             'sab_redirect_section',

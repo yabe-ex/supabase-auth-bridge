@@ -24,6 +24,7 @@ It allows you to completely separate "Site Administrators" (who use WordPress na
 * **Smart Password Reset:** Automatically detects if a user registered via Google and guides them to use the "Log in with Google" button instead of sending a reset email.
 * **High Performance:** Designed to handle thousands of users without performance degradation.
 * **Customizable Emails:** Supports sending "Welcome" emails from WordPress upon registration.
+* **Developer Friendly:** Includes hooks for customizing user roles and syncing additional metadata.
 
 ### Why use this plugin?
 
@@ -34,6 +35,7 @@ Unlike other plugins that sync the entire database, **Supabase Auth Bridge** aut
 1.  Upload the plugin files to the `/wp-content/plugins/supabase-auth-bridge` directory, or install the plugin through the WordPress plugins screen directly.
 2.  Activate the plugin through the 'Plugins' screen in WordPress.
 3.  Go to **Settings > Supabase Auth Bridge**.
+4.  **Important:** If you use a caching plugin (like WP Rocket, W3 Total Cache), please **exclude the login and registration pages from caching**. Otherwise, the security nonce may expire, preventing users from logging in.
 
 ### Supabase Setup (Required)
 
@@ -67,6 +69,30 @@ No. For security reasons, users with `administrator` privileges are blocked from
 = Where can I find the Redirect URL for Google Login? =
 If you use Google Login, you need to add your site's URL to the **Redirect URLs** in Supabase (Authentication > URL Configuration). Usually, this is just your site's home URL (e.g., `https://example.com`).
 
+== For Developers ==
+
+You can customize the plugin behavior using the following hooks in your theme's `functions.php`:
+
+**1. Change Default User Role**
+By default, new users are assigned the `subscriber` role. You can change this using the `supabase_auth_bridge_user_role` filter.
+
+`add_filter('supabase_auth_bridge_user_role', function($role, $user_data) {
+    // Example: Set role based on Supabase metadata
+    // if (isset($user_data->user_metadata->plan) && $user_data->user_metadata->plan === 'premium') {
+    //     return 'contributor';
+    // }
+    return 'customer'; // Change default to 'customer' (for WooCommerce)
+}, 10, 2);`
+
+**2. Sync Additional Metadata**
+Use the `supabase_auth_bridge_after_user_sync` action to save additional data (like names or avatars) from Supabase to WordPress user meta.
+
+`add_action('supabase_auth_bridge_after_user_sync', function($user_id, $user_data, $is_new_user) {
+    if (isset($user_data->user_metadata->full_name)) {
+        update_user_meta($user_id, 'first_name', $user_data->user_metadata->full_name);
+    }
+}, 10, 3);`
+
 == Screenshots ==
 
 1.  **Frontend Login Form:** Supports Email, Magic Link, and Google Login.
@@ -91,3 +117,4 @@ Use these shortcodes to place forms on your pages:
 * Implemented "Smart Check" for password resets.
 * Added security protection for Administrator accounts.
 * Added support for Custom SMTP email flow compatibility.
+* Added developer hooks for role customization and metadata syncing.
