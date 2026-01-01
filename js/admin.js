@@ -1,3 +1,6 @@
 jQuery(document).ready(function ($) {
-    //console.log("ajaxuxl: " + admin.ajaxurl);
+    // カラーピッカーの初期化
+    if ($.fn.wpColorPicker) {
+        $('.sab-color-field').wpColorPicker();
+    }
 });

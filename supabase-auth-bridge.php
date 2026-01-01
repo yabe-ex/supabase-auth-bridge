@@ -3,7 +3,7 @@
 /**
  * Plugin Name: Supabase Auth Bridge
  * Plugin URI:
- * Description: Replace the default WordPress login with Supabase Authentication. Supports Magic Links, Social Login (Google, GitHub, etc.), and auto-syncs users to WordPress.
+ * Description: Replace the default WordPress login with Supabase Authentication. Supports Magic Links, Social Login (Google), and auto-syncs users to WordPress.
  * Version: 1.0.0
  * Author: Edel Hearts
  * Author URI:
@@ -31,14 +31,15 @@ class SupabaseAuthBridge {
         $admin = new SupabaseAuthBridgeAdmin();
 
         add_action('admin_menu', array($admin, 'create_menu'));
+        add_action('admin_init', array($admin, 'register_settings')); // register_settingsをフックに追加
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($admin, 'plugin_action_links'));
-        add_action('admin_enqueue_scripts', array($admin, 'admin_enqueue')); // ← コメントアウト解除
+        add_action('admin_enqueue_scripts', array($admin, 'admin_enqueue'));
 
         // フロントエンドの処理
         require_once SUPABASE_AUTH_BRIDGE_PATH . '/inc/class-front.php';
         $front = new SupabaseAuthBridgeFront();
 
-        add_action('wp_enqueue_scripts', array($front, 'front_enqueue')); // ← コメントアウト解除
+        add_action('wp_enqueue_scripts', array($front, 'front_enqueue'));
     }
 }
 

@@ -1,0 +1,134 @@
+:root {
+    --sab-primary-color: #0073aa; /* PHP側で上書きされます */
+    --sab-google-color: #4285f4;
+    --sab-bg-color: #f9f9f9;
+    --sab-text-color: #333;
+}
+
+.sab-container {
+    max-width: 400px;
+    margin: 0 auto;
+    padding: 20px;
+    background: var(--sab-bg-color);
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    /* 全体のフォントサイズを少し下げる */
+    font-size: 14px;
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen-Sans, Ubuntu, Cantarell, 'Helvetica Neue', sans-serif;
+    line-height: 1.5;
+}
+
+.sab-container p {
+    margin-top: 0;
+    margin-bottom: 15px;
+}
+
+.sab-form-group {
+    margin-bottom: 15px;
+}
+
+.sab-form-group label {
+    display: block;
+    margin-bottom: 5px;
+    font-weight: bold;
+    color: var(--sab-text-color);
+    font-size: 13px; /* ラベルも少し小さめに調整 */
+}
+
+.sab-input {
+    width: 100%;
+    padding: 10px;
+    border: 1px solid #ccc;
+    border-radius: 4px;
+    box-sizing: border-box;
+    font-size: 14px; /* 入力文字もコンテナに合わせて調整 */
+}
+
+.sab-btn {
+    width: 100%;
+    padding: 10px;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+    text-align: center;
+    transition: opacity 0.3s;
+    display: block;
+    /* ボタンのラベルサイズは維持 */
+    font-size: 16px;
+    font-weight: 500;
+}
+
+.sab-btn:hover {
+    opacity: 0.9;
+}
+
+.sab-btn:disabled {
+    opacity: 0.6;
+    cursor: not-allowed;
+}
+
+.sab-btn-primary {
+    background-color: var(--sab-primary-color);
+    color: #fff;
+}
+
+.sab-btn-secondary {
+    background-color: #fff;
+    border: 1px solid var(--sab-primary-color);
+    color: var(--sab-primary-color);
+}
+
+.sab-btn-google {
+    background-color: var(--sab-google-color);
+    color: #fff;
+    margin-top: 10px;
+}
+
+.sab-divider {
+    text-align: center;
+    margin: 20px 0;
+    position: relative;
+    border-bottom: 1px solid #ddd;
+    height: 1px;
+}
+
+.sab-divider span {
+    background: var(--sab-bg-color);
+    padding: 0 10px;
+    color: #999;
+    font-size: 12px;
+    position: relative;
+    top: -10px;
+}
+
+.sab-message {
+    margin-top: 10px;
+    margin-bottom: 10px;
+    padding: 10px;
+    border-radius: 4px;
+    font-size: 13px; /* メッセージは少し小さく */
+    line-height: 1.4;
+}
+
+.sab-error {
+    background-color: #fdecea;
+    color: #d32f2f;
+    border: 1px solid #f5c6cb;
+}
+
+.sab-success {
+    background-color: #edf7ed;
+    color: #1e4620;
+    border: 1px solid #c3e6cb;
+}
+
+.sab-forgot-link {
+    margin-top: 15px;
+    text-align: center;
+    font-size: 13px; /* リンク文字も少し小さく */
+}
+
+.sab-forgot-link a {
+    color: var(--sab-primary-color);
+    text-decoration: none;
+}

@@ -1,5 +1,5 @@
 === Supabase Auth Bridge for WordPress ===
-Contributors: (your_wordpress_org_username)
+Contributors: edelhearts
 Tags: supabase, authentication, login, membership, google-login
 Requires at least: 6.0
 Tested up to: 6.7
