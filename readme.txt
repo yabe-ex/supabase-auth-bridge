@@ -1,6 +1,6 @@
-=== Supabase Auth Bridge for WordPress ===
+=== Supabase Auth Bridge ===
 Contributors: edelhearts
-Tags: supabase, authentication, login, membership, google-login
+Tags: supabase, authentication, login, membership, google-login, passwordless
 Requires at least: 6.0
 Tested up to: 6.7
 Stable tag: 1.0.0
@@ -12,60 +12,82 @@ Connect your WordPress site to Supabase Authentication. Securely manage members 
 
 == Description ==
 
-This plugin integrates Supabase Authentication into your WordPress site, providing a secure and scalable membership system. It allows you to separate "Site Administrators" (WordPress native auth) from "General Users" (Supabase auth).
+This plugin integrates **Supabase Authentication** into your WordPress site, providing a secure, scalable, and modern membership system.
 
-It is designed to solve the complexity of hybrid user management.
+It allows you to completely separate "Site Administrators" (who use WordPress native auth) from "General Users" (who use Supabase auth). This ensures your `wp-admin` remains secure while offering a seamless login experience for your customers.
 
 ### Key Features
 
-* **Supabase Authentication:** Users can sign up and log in using Supabase (Email/Password or Social Providers like Google).
-* **Smart Password Reset Flow:**
-    * Automatically detects user type (Supabase User vs. WordPress Admin).
-    * **Google Account Support:** If a user registered via Google tries to reset their password, the system intelligently skips sending an email and guides them to use the "Log in with Google" button instead.
-    * **Security:** Prevents User Enumeration attacks by unifying success messages regardless of registration status.
-* **Shortcodes:** Easily place Login, Registration, and Password Reset forms anywhere using shortcodes.
-* **Admin/User Separation:** Keeps your `wp-admin` secure by using standard WordPress login for administrators, while frontend users authenticate via Supabase.
+* **Supabase Authentication:** Support for Email/Password, Magic Links (Passwordless), and Social Login (Google).
+* **Auto Synchronization:** Users created in Supabase are automatically synced to WordPress as subscribers upon login.
+* **Secure Admin Separation:** Administrators are blocked from logging in via the frontend forms to prevent privilege escalation attacks.
+* **Smart Password Reset:** Automatically detects if a user registered via Google and guides them to use the "Log in with Google" button instead of sending a reset email.
+* **High Performance:** Designed to handle thousands of users without performance degradation.
+* **Customizable Emails:** Supports sending "Welcome" emails from WordPress upon registration.
 
-### Usage
+### Why use this plugin?
 
-1.  Create a Supabase project and get your URL and Anon Key.
-2.  Install this plugin and enter your Supabase credentials in the settings page.
-3.  Create "Login", "Register", and "Password Reset" pages in WordPress.
-4.  Paste the provided shortcodes into those pages.
+Unlike other plugins that sync the entire database, **Supabase Auth Bridge** authenticates users via the Supabase API on the frontend and only creates a WordPress user session when necessary. This keeps your WordPress database clean and your site fast.
 
 == Installation ==
 
 1.  Upload the plugin files to the `/wp-content/plugins/supabase-auth-bridge` directory, or install the plugin through the WordPress plugins screen directly.
 2.  Activate the plugin through the 'Plugins' screen in WordPress.
-3.  Go to the "Supabase Auth" settings page and configure your Supabase URL and Public Key.
-4.  Use the shortcodes `[supabase_login]`, `[supabase_register]`, and `[supabase_reset_password]` in your pages.
+3.  Go to **Settings > Supabase Auth Bridge**.
+
+### Supabase Setup (Required)
+
+1.  Log in to your [Supabase Dashboard](https://supabase.com/dashboard).
+2.  Go to **Project Settings > API**.
+3.  Copy the **Project URL**, **anon public key**, and **service_role secret**.
+4.  Paste these credentials into the plugin settings page in WordPress.
+    * *Note: The `service_role` key is stored securely and used only for administrative tasks (like checking Google users or deleting users).*
+
+### Email Setup (Recommended)
+
+To remove the "Powered by Supabase" footer and use your own sender name:
+1.  In Supabase, go to **Project Settings > Authentication > SMTP Settings**.
+2.  Enable **Custom SMTP** and enter your SMTP credentials (e.g., SendGrid, Amazon SES, or your hosting provider's SMTP).
+3.  Go to **Authentication > Email Templates** and remove the footer from the templates.
 
 == Frequently Asked Questions ==
 
+= How do I remove the "Powered by Supabase" text from emails? =
+This text is automatically added by Supabase if you are using their built-in email service. To remove it, you must configure **Custom SMTP** in your Supabase Project Settings. Once configured, you can edit the Email Templates to remove the footer.
+
 = Does this plugin sync users to the WordPress database? =
-No. To keep the database clean and secure, general users exist only in Supabase. They are authenticated via session on the frontend. (Or, if your plugin creates a temporary WP user, update this answer accordingly).
+Yes, but efficiently. A WordPress user record is created (or updated) only when a user successfully logs in via Supabase. This ensures that users exist in WordPress for compatibility with other plugins (like WooCommerce or membership plugins), but authentication is handled by Supabase.
 
 = What happens if a Google-registered user tries to reset their password? =
-The plugin detects that the email is associated with a Google provider in Supabase. For security and usability, it will NOT send a reset email. Instead, the user will see a notification advising them to log in via the Google button.
+The plugin's "Smart Check" feature detects that the email is associated with a Google provider. Instead of sending a reset email (which wouldn't work), it displays a helpful message advising the user to log in with Google.
 
-= Can I use both WordPress Admins and Supabase Users? =
-Yes. Administrators should continue using the default `/wp-login.php` to access the dashboard. General users will use the frontend forms provided by this plugin.
+= Can Administrators log in via the Supabase form? =
+No. For security reasons, users with `administrator` privileges are blocked from logging in via the frontend Supabase forms. Admins should continue using the default `/wp-login.php` or `/wp-admin`.
+
+= Where can I find the Redirect URL for Google Login? =
+If you use Google Login, you need to add your site's URL to the **Redirect URLs** in Supabase (Authentication > URL Configuration). Usually, this is just your site's home URL (e.g., `https://example.com`).
 
 == Screenshots ==
 
-1.  Login Form (Frontend)
-2.  Password Reset Request Flow
-3.  Settings Screen
+1.  **Frontend Login Form:** Supports Email, Magic Link, and Google Login.
+2.  **Settings Screen:** Easy configuration for Supabase API keys.
+3.  **Smart Password Reset:** User friendly notification for Google users.
+
+== Shortcodes ==
+
+Use these shortcodes to place forms on your pages:
+
+* `[supabase_login]` - Displays the login form.
+* `[supabase_register]` - Displays the registration form.
+* `[supabase_forgot_password]` - Displays the password reset request form.
+* `[supabase_update_password]` - Displays the new password entry form (for the reset flow).
+* `[supabase_logout]` - Displays a logout button (only visible to logged-in users).
 
 == Changelog ==
 
 = 1.0.0 =
 * Initial release.
-* Added Supabase authentication support.
-* Implemented smart password reset logic with Google account detection.
-* Added shortcode support.
-
-== Upgrade Notice ==
-
-= 1.0.0 =
-This is the first version of the plugin.
+* Added support for Email/Password, Magic Link, and Google Login.
+* Implemented "Smart Check" for password resets.
+* Added security protection for Administrator accounts.
+* Added support for Custom SMTP email flow compatibility.

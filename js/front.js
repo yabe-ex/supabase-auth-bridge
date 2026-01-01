@@ -7,6 +7,7 @@ jQuery(document).ready(function ($) {
 
     const { createClient } = window.supabase;
     const supabase = createClient(sab_vars.supabase_url, sab_vars.supabase_key);
+    const i18n = sab_vars.i18n; // 翻訳オブジェクトのショートカット
 
     // ヘルパー: メッセージ表示
     function showMsg(elem, text, isError = false) {
@@ -27,16 +28,16 @@ jQuery(document).ready(function ($) {
         const $btn = $('#sab-submit');
         const $msg = $('#sab-message');
 
-        $btn.prop('disabled', true).text('認証中...');
+        $btn.prop('disabled', true).text(i18n.authenticating);
         $msg.hide();
 
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
 
         if (error) {
-            showMsg($msg, 'エラー: ' + error.message, true);
-            $btn.prop('disabled', false).text('ログイン');
+            showMsg($msg, i18n.error_prefix + error.message, true);
+            $btn.prop('disabled', false).text(i18n.login);
         } else {
-            $btn.text('WordPress連携中...');
+            $btn.text(i18n.syncing);
             syncWithWordPress(data.session.access_token, $msg);
         }
     });
@@ -52,11 +53,11 @@ jQuery(document).ready(function ($) {
         const $btn = $(this);
 
         if (!email) {
-            $msg.show().text('メールアドレスを入力してください').addClass('sab-error');
+            $msg.show().text(i18n.enter_email).addClass('sab-error');
             return;
         }
 
-        $btn.prop('disabled', true).text('送信中...');
+        $btn.prop('disabled', true).text(i18n.sending);
         $msg.hide();
 
         const { error } = await supabase.auth.signInWithOtp({
@@ -65,11 +66,11 @@ jQuery(document).ready(function ($) {
         });
 
         if (error) {
-            showMsg($msg, 'エラー: ' + error.message, true);
-            $btn.prop('disabled', false).text('ログインコードを送信');
+            showMsg($msg, i18n.error_prefix + error.message, true);
+            $btn.prop('disabled', false).text(i18n.send_magic_link);
         } else {
-            showMsg($msg, 'ログイン用のリンク(またはコード)をメールで送信しました。', false);
-            $btn.text('送信完了');
+            showMsg($msg, i18n.magic_link_sent, false);
+            $btn.text(i18n.sent_done);
         }
     });
 
@@ -83,20 +84,20 @@ jQuery(document).ready(function ($) {
         const $btn = $('#sab-reg-submit');
         const $msg = $('#sab-reg-message');
 
-        $btn.prop('disabled', true).text('登録中...');
+        $btn.prop('disabled', true).text(i18n.registering);
         $msg.hide();
 
         const { data, error } = await supabase.auth.signUp({ email, password });
 
         if (error) {
-            showMsg($msg, 'エラー: ' + error.message, true);
-            $btn.prop('disabled', false).text('会員登録');
+            showMsg($msg, i18n.error_prefix + error.message, true);
+            $btn.prop('disabled', false).text(i18n.register_btn);
         } else if (data.session) {
-            showMsg($msg, '登録成功！ログインします...', false);
+            showMsg($msg, i18n.reg_success, false);
             syncWithWordPress(data.session.access_token, $msg);
         } else {
-            showMsg($msg, '確認メールを送信しました。メール内のリンクをクリックしてください。', false);
-            $btn.text('メールを確認してください');
+            showMsg($msg, i18n.check_email, false);
+            $btn.text(i18n.check_email_btn);
         }
     });
 
@@ -108,7 +109,7 @@ jQuery(document).ready(function ($) {
             provider: 'google',
             options: { redirectTo: window.location.href }
         });
-        if (error) alert('Google Error: ' + error.message);
+        if (error) alert(i18n.google_error + error.message);
     });
 
     // ---------------------------
@@ -116,7 +117,7 @@ jQuery(document).ready(function ($) {
     // ---------------------------
     $('#sab-logout-button').on('click', async function (e) {
         e.preventDefault();
-        $(this).text('ログアウト中...');
+        $(this).text(i18n.logging_out);
         await supabase.auth.signOut();
         window.location.href = sab_vars.logout_url;
     });
@@ -130,7 +131,7 @@ jQuery(document).ready(function ($) {
         const $btn = $('#sab-forgot-submit');
         const $msg = $('#sab-forgot-message');
 
-        $btn.prop('disabled', true).text('確認中...');
+        $btn.prop('disabled', true).text(i18n.checking);
         $msg.hide();
 
         // 1. サーバーサイドで判定
@@ -145,28 +146,28 @@ jQuery(document).ready(function ($) {
             success: async function (response) {
                 if (response.success && response.data.provider === 'google') {
                     // Googleユーザー: 案内を表示
-                    showMsg($msg, 'このメールアドレスはGoogleアカウントで登録されています。「Googleでログイン」ボタンをご利用ください。', false);
-                    $btn.prop('disabled', false).text('送信する');
+                    showMsg($msg, i18n.google_account_alert, false);
+                    $btn.prop('disabled', false).text(i18n.send_btn);
                 } else {
                     // 通常フロー
-                    $btn.text('送信中...');
+                    $btn.text(i18n.sending);
                     const { error } = await supabase.auth.resetPasswordForEmail(email, {
                         redirectTo: sab_vars.reset_redirect_to
                     });
 
                     if (error) {
-                        showMsg($msg, 'エラー: ' + error.message, true);
-                        $btn.prop('disabled', false).text('送信する');
+                        showMsg($msg, i18n.error_prefix + error.message, true);
+                        $btn.prop('disabled', false).text(i18n.send_btn);
                     } else {
-                        showMsg($msg, '再設定メールを送信しました。メールをご確認ください。', false);
-                        $btn.text('送信完了');
+                        showMsg($msg, i18n.reset_email_sent, false);
+                        $btn.text(i18n.sent_done);
                     }
                 }
             },
             error: function () {
                 // エラー時は安全策として送信
                 supabase.auth.resetPasswordForEmail(email, { redirectTo: sab_vars.reset_redirect_to });
-                showMsg($msg, '処理が完了しました。メールが届かない場合はGoogleログインをお試しください。', false);
+                showMsg($msg, i18n.reset_fallback_msg, false);
             }
         });
     });
@@ -180,16 +181,16 @@ jQuery(document).ready(function ($) {
         const $btn = $('#sab-update-submit');
         const $msg = $('#sab-update-message');
 
-        $btn.prop('disabled', true).text('更新中...');
+        $btn.prop('disabled', true).text(i18n.updating);
         $msg.hide();
 
         const { error } = await supabase.auth.updateUser({ password: newPassword });
 
         if (error) {
-            showMsg($msg, 'エラー: ' + error.message, true);
-            $btn.prop('disabled', false).text('変更する');
+            showMsg($msg, i18n.error_prefix + error.message, true);
+            $btn.prop('disabled', false).text(i18n.change_btn);
         } else {
-            showMsg($msg, 'パスワードを変更しました！', false);
+            showMsg($msg, i18n.pw_changed, false);
             setTimeout(function () {
                 window.location.href = sab_vars.redirect_url;
             }, 1000);
@@ -206,7 +207,7 @@ jQuery(document).ready(function ($) {
             if (!$msg.length) $msg = $('#sab-reg-message');
 
             console.log('Supabase Login Detected -> Syncing...');
-            if ($msg.length) $msg.show().text('ログイン連携中...');
+            if ($msg.length) $msg.show().text(i18n.sync_login);
 
             syncWithWordPress(session.access_token, $msg);
         }
@@ -223,7 +224,7 @@ jQuery(document).ready(function ($) {
             data: JSON.stringify({ access_token: accessToken }),
             success: function (response) {
                 if (response.success) {
-                    if ($msgElement && $msgElement.length) showMsg($msgElement, '成功！移動します...', false);
+                    if ($msgElement && $msgElement.length) showMsg($msgElement, i18n.success_redirect, false);
                     setTimeout(function () {
                         window.location.href = sab_vars.redirect_url;
                     }, 500);
@@ -231,7 +232,7 @@ jQuery(document).ready(function ($) {
             },
             error: function (xhr) {
                 console.error(xhr);
-                if ($msgElement && $msgElement.length) showMsg($msgElement, '連携エラーが発生しました。', true);
+                if ($msgElement && $msgElement.length) showMsg($msgElement, i18n.sync_error, true);
             }
         });
     }

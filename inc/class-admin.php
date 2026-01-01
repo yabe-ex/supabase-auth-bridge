@@ -24,18 +24,18 @@ class SupabaseAuthBridgeAdmin {
         // --- 1. API設定 ---
         register_setting($this->option_group, 'sab_supabase_url');
         register_setting($this->option_group, 'sab_supabase_anon_key');
-        register_setting($this->option_group, 'sab_supabase_service_role_key'); // Google判定＆削除用
+        register_setting($this->option_group, 'sab_supabase_service_role_key');
 
         add_settings_section(
             'sab_general_section',
-            'Supabase API接続設定',
+            __('Supabase API Connection Settings', 'supabase-auth-bridge'),
             null,
             'supabase-auth-bridge'
         );
 
-        add_settings_field('sab_supabase_url', 'Supabase Project URL', array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_general_section', array('name' => 'sab_supabase_url', 'placeholder' => 'https://xxx.supabase.co'));
-        add_settings_field('sab_supabase_anon_key', 'Supabase Anon Key', array($this, 'render_field_password'), 'supabase-auth-bridge', 'sab_general_section', array('name' => 'sab_supabase_anon_key'));
-        add_settings_field('sab_supabase_service_role_key', 'Supabase Service Role Key', array($this, 'render_field_password'), 'supabase-auth-bridge', 'sab_general_section', array('name' => 'sab_supabase_service_role_key', 'desc' => 'Googleログイン判定およびユーザー削除時に使用します（公開されません）。'));
+        add_settings_field('sab_supabase_url', __('Supabase Project URL', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_general_section', array('name' => 'sab_supabase_url', 'placeholder' => 'https://xxx.supabase.co'));
+        add_settings_field('sab_supabase_anon_key', __('Supabase Anon Key', 'supabase-auth-bridge'), array($this, 'render_field_password'), 'supabase-auth-bridge', 'sab_general_section', array('name' => 'sab_supabase_anon_key'));
+        add_settings_field('sab_supabase_service_role_key', __('Supabase Service Role Key', 'supabase-auth-bridge'), array($this, 'render_field_password'), 'supabase-auth-bridge', 'sab_general_section', array('name' => 'sab_supabase_service_role_key', 'desc' => __('Used for detecting Google Login users and deleting users from Supabase (Not exposed to frontend).', 'supabase-auth-bridge')));
 
 
         // --- 2. デザイン・機能設定 ---
@@ -46,13 +46,13 @@ class SupabaseAuthBridgeAdmin {
 
         add_settings_section(
             'sab_design_section',
-            'デザイン・機能設定',
+            __('Design & Function Settings', 'supabase-auth-bridge'),
             null,
             'supabase-auth-bridge'
         );
 
-        add_settings_field('sab_main_color', 'メインカラー', array($this, 'render_field_color'), 'supabase-auth-bridge', 'sab_design_section', array('name' => 'sab_main_color', 'default' => '#0073aa'));
-        add_settings_field('sab_auth_methods', '利用する認証方式', array($this, 'render_field_auth_methods'), 'supabase-auth-bridge', 'sab_design_section');
+        add_settings_field('sab_main_color', __('Main Color', 'supabase-auth-bridge'), array($this, 'render_field_color'), 'supabase-auth-bridge', 'sab_design_section', array('name' => 'sab_main_color', 'default' => '#0073aa'));
+        add_settings_field('sab_auth_methods', __('Authentication Methods', 'supabase-auth-bridge'), array($this, 'render_field_auth_methods'), 'supabase-auth-bridge', 'sab_design_section');
 
 
         // --- 3. リダイレクト設定 ---
@@ -63,43 +63,38 @@ class SupabaseAuthBridgeAdmin {
 
         add_settings_section(
             'sab_redirect_section',
-            'リダイレクト設定 (URL)',
+            __('Redirect Settings (URL Paths)', 'supabase-auth-bridge'),
             array($this, 'redirect_section_desc'),
             'supabase-auth-bridge'
         );
 
-        add_settings_field('sab_redirect_after_login', 'ログイン後の移動先', array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_redirect_after_login', 'placeholder' => '/my-page'));
-        add_settings_field('sab_redirect_after_logout', 'ログアウト後の移動先', array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_redirect_after_logout', 'placeholder' => '/'));
+        add_settings_field('sab_redirect_after_login', __('Redirect after Login', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_redirect_after_login', 'placeholder' => '/my-page'));
+        add_settings_field('sab_redirect_after_logout', __('Redirect after Logout', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_redirect_after_logout', 'placeholder' => '/'));
 
-        add_settings_field('sab_forgot_password_url', 'パスワード申請ページ (Forgot PW)', array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_forgot_password_url', 'placeholder' => '/forgot-password', 'desc' => 'ログイン画面の「パスワードをお忘れですか？」のリンク先'));
-        add_settings_field('sab_password_reset_url', 'パスワード再設定ページ (New PW)', array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_password_reset_url', 'placeholder' => '/reset-password', 'desc' => 'メール内のリンクをクリックした後の移動先'));
+        add_settings_field('sab_forgot_password_url', __('Forgot Password Page URL', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_forgot_password_url', 'placeholder' => '/forgot-password', 'desc' => __('Link destination for "Forgot Password?" on the login screen.', 'supabase-auth-bridge')));
+        add_settings_field('sab_password_reset_url', __('Password Reset Page URL (New PW)', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_password_reset_url', 'placeholder' => '/reset-password', 'desc' => __('Destination after clicking the link in the reset email.', 'supabase-auth-bridge')));
     }
 
     function redirect_section_desc() {
-        echo '<p>各操作の完了後に移動するページのURLパスを入力してください。</p>';
+        echo '<p>' . esc_html__('Enter the URL path to redirect to after each action completes.', 'supabase-auth-bridge') . '</p>';
     }
 
-    // --- ユーザー削除時の同期処理 (New!) ---
+    // --- ユーザー削除時の同期処理 ---
     function handle_delete_user($user_id) {
-        // 1. SupabaseのUUIDを取得（メタデータに保存されているはず）
         $supabase_uuid = get_user_meta($user_id, 'supabase_uuid', true);
 
-        // UUIDがない場合（通常のWP管理ユーザーなど）は何もしない
         if (!$supabase_uuid) {
             return;
         }
 
-        // 2. 必要なAPI情報を取得
         $url = get_option('sab_supabase_url');
         $service_key = get_option('sab_supabase_service_role_key');
 
         if (!$url || !$service_key) {
-            // キーがないと消せないのでログに残す等の処理推奨
             error_log('Supabase Auth Bridge: Service Role Key is missing. Could not delete user from Supabase.');
             return;
         }
 
-        // 3. Supabase Admin APIを実行 (DELETE /auth/v1/admin/users/{id})
         $api_url = rtrim($url, '/') . '/auth/v1/admin/users/' . $supabase_uuid;
 
         $response = wp_remote_request($api_url, array(
@@ -111,7 +106,6 @@ class SupabaseAuthBridgeAdmin {
             )
         ));
 
-        // 4. 結果確認（エラーログ出力）
         if (is_wp_error($response)) {
             error_log('Supabase Auth Bridge: Error deleting user - ' . $response->get_error_message());
         } else {
@@ -155,34 +149,30 @@ class SupabaseAuthBridgeAdmin {
         $magic = get_option('sab_auth_method_magiclink');
 ?>
         <fieldset>
-            <label><input type="checkbox" name="sab_auth_method_email" value="1" <?php checked($email, 1); ?>> メールアドレス ＋ パスワード</label><br>
-            <label><input type="checkbox" name="sab_auth_method_google" value="1" <?php checked($google, 1); ?>> Google認証 (OAuth)</label><br>
-            <label><input type="checkbox" name="sab_auth_method_magiclink" value="1" <?php checked($magic, 1); ?>> メール認証コード / マジックリンク (Passwordless)</label>
+            <label><input type="checkbox" name="sab_auth_method_email" value="1" <?php checked($email, 1); ?>> <?php esc_html_e('Email + Password', 'supabase-auth-bridge'); ?></label><br>
+            <label><input type="checkbox" name="sab_auth_method_google" value="1" <?php checked($google, 1); ?>> <?php esc_html_e('Google Auth (OAuth)', 'supabase-auth-bridge'); ?></label><br>
+            <label><input type="checkbox" name="sab_auth_method_magiclink" value="1" <?php checked($magic, 1); ?>> <?php esc_html_e('Email OTP / Magic Link (Passwordless)', 'supabase-auth-bridge'); ?></label>
         </fieldset>
     <?php
     }
 
-    // CSS/JS読み込み
     function admin_enqueue($hook) {
         if (strpos($hook, 'supabase-auth-bridge') === false) return;
 
-        // カラーピッカーの読み込み
         wp_enqueue_style('wp-color-picker');
         wp_enqueue_script(SUPABASE_AUTH_BRIDGE_SLUG . '-admin', SUPABASE_AUTH_BRIDGE_URL . '/js/admin.js', array('jquery', 'wp-color-picker'), SUPABASE_AUTH_BRIDGE_VERSION, true);
     }
 
-    // 設定リンク追加
     function plugin_action_links($links) {
-        $url = '<a href="' . esc_url(admin_url("/options-general.php?page=supabase-auth-bridge")) . '">設定</a>';
+        $url = '<a href="' . esc_url(admin_url("/options-general.php?page=supabase-auth-bridge")) . '">' . esc_html__('Settings', 'supabase-auth-bridge') . '</a>';
         array_unshift($links, $url);
         return $links;
     }
 
-    // 設定ページ表示
     function show_setting_page() {
     ?>
         <div class="wrap">
-            <h1>Supabase Auth Bridge 設定</h1>
+            <h1><?php esc_html_e('Supabase Auth Bridge Settings', 'supabase-auth-bridge'); ?></h1>
             <form method="post" action="options.php">
                 <?php
                 settings_fields($this->option_group);

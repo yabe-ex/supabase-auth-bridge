@@ -9,6 +9,8 @@
  * Author URI:
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
+ * Text Domain: supabase-auth-bridge
+ * Domain Path: /languages
  */
 
 // Exit if accessed directly.
@@ -31,7 +33,7 @@ class SupabaseAuthBridge {
         $admin = new SupabaseAuthBridgeAdmin();
 
         add_action('admin_menu', array($admin, 'create_menu'));
-        add_action('admin_init', array($admin, 'register_settings')); // register_settingsをフックに追加
+        add_action('admin_init', array($admin, 'register_settings'));
         add_filter('plugin_action_links_' . plugin_basename(__FILE__), array($admin, 'plugin_action_links'));
         add_action('admin_enqueue_scripts', array($admin, 'admin_enqueue'));
 
