@@ -9,6 +9,34 @@ jQuery(document).ready(function ($) {
     const supabase = createClient(sab_vars.supabase_url, sab_vars.supabase_key);
     const i18n = sab_vars.i18n;
 
+    // ★追加: 登録処理中かどうかのフラグ
+    let isProcessingRegistration = false;
+
+    // ---------------------------
+    // 【追加】ログイン成功メッセージ表示処理
+    // ---------------------------
+    // URLパラメータに 'sab_logged_in=1' があればメッセージを表示
+    const urlParams = new URLSearchParams(window.location.search);
+    if (urlParams.get('sab_logged_in') === '1') {
+        // URLからパラメータを削除（リロード時に再表示させないため）
+        const newUrl = window.location.href.replace(/[\?&]sab_logged_in=1/, '');
+        window.history.replaceState({}, document.title, newUrl);
+
+        // トースト要素を作成してbodyに追加
+        // ★修正: ハードコードされていた日本語を変数に置き換え
+        const $toast = $('<div id="sab-login-toast">' + i18n.logged_in + '</div>');
+        $('body').append($toast);
+
+        // フェードイン -> 待機 -> フェードアウト
+        $toast.fadeIn(500, function () {
+            setTimeout(function () {
+                $toast.fadeOut(1000, function () {
+                    $(this).remove();
+                });
+            }, 2500); // 2.5秒間表示
+        });
+    }
+
     // ---------------------------
     // 【追加】強制ログアウト処理
     // ---------------------------
@@ -50,6 +78,7 @@ jQuery(document).ready(function ($) {
             $btn.prop('disabled', false).text(i18n.login);
         } else {
             $btn.text(i18n.syncing);
+            // 手動ログインなので isAutoSync=false (デフォルト)
             syncWithWordPress(data.session.access_token, $msg);
         }
     });
@@ -91,6 +120,10 @@ jQuery(document).ready(function ($) {
     // ---------------------------
     $('#sab-register-form').on('submit', async function (e) {
         e.preventDefault();
+
+        // ★追加: 登録処理開始フラグON
+        isProcessingRegistration = true;
+
         const email = $('#sab-reg-email').val();
         const password = $('#sab-reg-password').val();
         const $btn = $('#sab-reg-submit');
@@ -104,12 +137,17 @@ jQuery(document).ready(function ($) {
         if (error) {
             showMsg($msg, i18n.error_prefix + error.message, true);
             $btn.prop('disabled', false).text(i18n.register_btn);
+            // ★追加: エラー時はフラグを戻す
+            isProcessingRegistration = false;
         } else if (data.session) {
             showMsg($msg, i18n.reg_success, false);
+            // 手動登録なので isAutoSync=false (デフォルト)
             syncWithWordPress(data.session.access_token, $msg);
         } else {
             showMsg($msg, i18n.check_email, false);
             $btn.text(i18n.check_email_btn);
+            // ★追加: 確認メール送信のみでセッションがない場合もフラグを戻す
+            isProcessingRegistration = false;
         }
     });
 
@@ -215,17 +253,33 @@ jQuery(document).ready(function ($) {
     supabase.auth.onAuthStateChange(async (event, session) => {
         if (event === 'SIGNED_IN' && session) {
             if (sab_vars.is_logged_in == '1') return;
-            let $msg = $('#sab-message');
-            if (!$msg.length) $msg = $('#sab-reg-message');
 
-            console.log('Supabase Login Detected -> Syncing...');
-            if ($msg.length) $msg.show().text(i18n.sync_login);
+            // ★追加: 登録処理中の場合は、ここでの同期を行わない
+            if (isProcessingRegistration) {
+                console.log('Skipping auto-sync because registration flow is active.');
+                return;
+            }
 
-            syncWithWordPress(session.access_token, $msg);
+            console.log('Supabase Login Detected -> Auto Syncing...');
+
+            // ★変更: 自動同期フラグをtrueにして呼び出す（エラー時はメッセージを出さずログアウトする）
+            syncWithWordPress(session.access_token, null, true);
         }
     });
 
-    function syncWithWordPress(accessToken, $msgElement) {
+    /**
+     * WordPressと同期する関数
+     * @param {string} accessToken
+     * @param {jQueryObject} $msgElement メッセージを表示する要素（ボタン押下時のみ）
+     * @param {boolean} isAutoSync 自動同期かどうか（trueならエラー時に表示せずログアウトする）
+     */
+    function syncWithWordPress(accessToken, $msgElement, isAutoSync = false) {
+        // 手動操作（ボタン押下）の場合のみメッセージを表示
+        if (!isAutoSync && $msgElement && $msgElement.length) {
+            // テキストのみ更新
+            $msgElement.show().text(i18n.sync_login);
+        }
+
         $.ajax({
             url: sab_vars.rest_url,
             method: 'POST',
@@ -236,15 +290,46 @@ jQuery(document).ready(function ($) {
             data: JSON.stringify({ access_token: accessToken }),
             success: function (response) {
                 if (response.success) {
-                    if ($msgElement && $msgElement.length) showMsg($msgElement, i18n.success_redirect, false);
+                    // 成功メッセージは手動時のみ表示
+                    if (!isAutoSync && $msgElement && $msgElement.length) {
+                        showMsg($msgElement, i18n.success_redirect, false);
+                    }
                     setTimeout(function () {
-                        window.location.href = sab_vars.redirect_url;
+                        let redirectUrl = sab_vars.redirect_url;
+                        // パラメータ付与（ログイン完了メッセージ用）
+                        redirectUrl += (redirectUrl.indexOf('?') === -1 ? '?' : '&') + 'sab_logged_in=1';
+                        window.location.href = redirectUrl;
                     }, 500);
                 }
             },
             error: function (xhr) {
-                console.error(xhr);
-                if ($msgElement && $msgElement.length) showMsg($msgElement, i18n.sync_error, true);
+                console.error('Sync Error Details:', xhr);
+
+                // ★追加: 自動同期でエラーが出た場合の処理 (サイレントログアウト)
+                if (isAutoSync) {
+                    console.warn('Auto-sync failed. Signing out from Supabase to clean up state.');
+                    // エラーメッセージは出さずに、Supabaseからもログアウトして整合性を取る
+                    supabase.auth.signOut();
+                    return;
+                }
+
+                // --- 以下、手動操作（ボタン押下）時のエラー表示 ---
+                let errMsg = i18n.sync_error;
+
+                // サーバーからのエラーメッセージがあればそれを追加
+                if (xhr.responseJSON && xhr.responseJSON.message) {
+                    errMsg += ' (' + xhr.responseJSON.message + ')';
+                }
+                // WAFなどでHTMLが返ってきた場合やJSONパース不能な場合の403
+                else if (xhr.status === 403) {
+                    errMsg += ' (403 Forbidden: WAF or Nonce Error)';
+                }
+                // その他のエラー
+                else {
+                    errMsg += ' (' + xhr.status + ' ' + xhr.statusText + ')';
+                }
+
+                if ($msgElement && $msgElement.length) showMsg($msgElement, errMsg, true);
             }
         });
     }

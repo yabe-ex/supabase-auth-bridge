@@ -55,11 +55,12 @@ class SupabaseAuthBridgeAdmin {
         add_settings_field('sab_auth_methods', __('Authentication Methods', 'supabase-auth-bridge'), array($this, 'render_field_auth_methods'), 'supabase-auth-bridge', 'sab_design_section');
 
 
-        // --- 3. 登録完了メール設定 (新規追加) ---
+        // --- 3. 登録完了メール設定 ---
         register_setting($this->option_group, 'sab_enable_welcome_email');
         register_setting($this->option_group, 'sab_welcome_sender_name', array('sanitize_callback' => 'sanitize_text_field'));
+        register_setting($this->option_group, 'sab_welcome_sender_email', array('sanitize_callback' => 'sanitize_email'));
         register_setting($this->option_group, 'sab_welcome_subject', array('sanitize_callback' => 'sanitize_text_field'));
-        register_setting($this->option_group, 'sab_welcome_body', array('sanitize_callback' => 'wp_kses_post')); // HTMLタグを一部許可
+        register_setting($this->option_group, 'sab_welcome_body', array('sanitize_callback' => 'wp_kses_post'));
 
         add_settings_section(
             'sab_email_section',
@@ -70,8 +71,12 @@ class SupabaseAuthBridgeAdmin {
 
         add_settings_field('sab_enable_welcome_email', __('Enable Welcome Email', 'supabase-auth-bridge'), array($this, 'render_checkbox_simple'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_enable_welcome_email', 'label' => __('Send a welcome email upon new user registration.', 'supabase-auth-bridge')));
         add_settings_field('sab_welcome_sender_name', __('Sender Name', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_sender_name', 'placeholder' => get_bloginfo('name')));
-        add_settings_field('sab_welcome_subject', __('Email Subject', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_subject', 'default' => '登録ありがとうございます'));
-        add_settings_field('sab_welcome_body', __('Email Body', 'supabase-auth-bridge'), array($this, 'render_textarea'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_body', 'default' => "{site_name} への登録が完了しました。\n\nユーザー: {email}\n\nログインはこちら: {login_url}"));
+        add_settings_field('sab_welcome_sender_email', __('Sender Email', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_sender_email', 'placeholder' => get_option('admin_email')));
+
+        // ★修正: デフォルト値を国際化対応 (英語ベース)
+        add_settings_field('sab_welcome_subject', __('Email Subject', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_subject', 'default' => __('Registration Thank You', 'supabase-auth-bridge')));
+        // ★修正: デフォルト値を国際化対応 (英語ベース)
+        add_settings_field('sab_welcome_body', __('Email Body', 'supabase-auth-bridge'), array($this, 'render_textarea'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_body', 'default' => __("Registration to {site_name} is complete.\n\nUser: {email}", 'supabase-auth-bridge')));
 
 
         // --- 4. リダイレクト設定 ---
@@ -92,6 +97,19 @@ class SupabaseAuthBridgeAdmin {
 
         add_settings_field('sab_forgot_password_url', __('Forgot Password Page URL', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_forgot_password_url', 'placeholder' => '/forgot-password', 'desc' => __('Link destination for "Forgot Password?" on the login screen.', 'supabase-auth-bridge')));
         add_settings_field('sab_password_reset_url', __('Password Reset Page URL (New PW)', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_redirect_section', array('name' => 'sab_password_reset_url', 'placeholder' => '/reset-password', 'desc' => __('Destination after clicking the link in the reset email.', 'supabase-auth-bridge')));
+
+
+        // --- 5. メンテナンス設定 (Keep Alive) ---
+        register_setting($this->option_group, 'sab_enable_keep_alive');
+
+        add_settings_section(
+            'sab_maintenance_section',
+            __('Maintenance Settings', 'supabase-auth-bridge'),
+            null,
+            'supabase-auth-bridge'
+        );
+
+        add_settings_field('sab_enable_keep_alive', __('Enable Keep Alive', 'supabase-auth-bridge'), array($this, 'render_checkbox_simple'), 'supabase-auth-bridge', 'sab_maintenance_section', array('name' => 'sab_enable_keep_alive', 'label' => __('Access Supabase once a day to prevent the free project from pausing.', 'supabase-auth-bridge')));
     }
 
     function redirect_section_desc() {
@@ -100,7 +118,7 @@ class SupabaseAuthBridgeAdmin {
 
     function email_section_desc() {
         echo '<p>' . esc_html__('Configure the automated email sent when a new user registers via Supabase.', 'supabase-auth-bridge') . '<br>' .
-            __('Available placeholders: ', 'supabase-auth-bridge') . '<code>{email}</code>, <code>{site_name}</code>, <code>{login_url}</code>, <code>{site_url}</code></p>';
+            __('Available placeholders: ', 'supabase-auth-bridge') . '<code>{email}</code>, <code>{site_name}</code>, <code>{site_url}</code></p>';
     }
 
     // --- ユーザー削除時の同期処理 ---
@@ -209,5 +227,36 @@ class SupabaseAuthBridgeAdmin {
             </form>
         </div>
 <?php
+    }
+
+    /**
+     * CronによるSupabaseへの定期アクセス実行
+     */
+    public function execute_keep_alive() {
+        // 設定が無効なら何もしない
+        if (!get_option('sab_enable_keep_alive')) {
+            return;
+        }
+
+        $url = get_option('sab_supabase_url');
+        $service_key = get_option('sab_supabase_service_role_key');
+
+        if (!$url || !$service_key) {
+            return;
+        }
+
+        // Supabaseのユーザー一覧取得APIを叩いてアクティビティとする
+        // 負荷をかけないよう per_page=1 に制限
+        $api_url = rtrim($url, '/') . '/auth/v1/admin/users?page=1&per_page=1';
+
+        wp_remote_get($api_url, array(
+            'headers' => array(
+                'apikey' => $service_key,
+                'Authorization' => 'Bearer ' . $service_key,
+                'Content-Type' => 'application/json'
+            ),
+            'blocking' => false, // 結果を待たずに終了
+            'timeout'  => 5
+        ));
     }
 }

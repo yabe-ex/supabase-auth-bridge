@@ -132,3 +132,23 @@
     color: var(--sab-primary-color);
     text-decoration: none;
 }
+
+/* ログイン完了トースト通知のスタイル */
+#sab-login-toast {
+    display: none; /* 初期状態は非表示（JSでfadeInさせる） */
+    position: fixed;
+    top: 30%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    background-color: #d4edda; /* 薄いグリーン背景 */
+    color: #155724; /* 濃いグリーン文字 */
+    border: 1px solid #c3e6cb;
+    padding: 20px 40px;
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+    font-size: 16px;
+    font-weight: bold;
+    z-index: 99999;
+    text-align: center;
+    white-space: nowrap;
+}

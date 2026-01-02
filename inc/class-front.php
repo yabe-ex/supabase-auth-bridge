@@ -19,6 +19,12 @@ class SupabaseAuthBridgeFront {
         add_shortcode('supabase_logout', array($this, 'render_logout_button'));
         add_shortcode('supabase_forgot_password', array($this, 'render_forgot_password_form'));
         add_shortcode('supabase_update_password', array($this, 'render_update_password_form'));
+
+        // 通常のフロントエンド読み込み
+        add_action('wp_enqueue_scripts', array($this, 'front_enqueue'));
+
+        // ログイン画面（wp-login.php）でもJSを読み込む
+        add_action('login_enqueue_scripts', array($this, 'front_enqueue'));
     }
 
     /**
@@ -103,6 +109,8 @@ class SupabaseAuthBridgeFront {
                 'sync_login' => __('Syncing login...', 'supabase-auth-bridge'),
                 'success_redirect' => __('Success! Redirecting...', 'supabase-auth-bridge'),
                 'sync_error' => __('Sync error occurred.', 'supabase-auth-bridge'),
+                // ★追加: トースト通知のメッセージ
+                'logged_in' => __('Logged in successfully.', 'supabase-auth-bridge'),
             )
         );
         wp_localize_script(SUPABASE_AUTH_BRIDGE_SLUG . '-front', 'sab_vars', $front);
@@ -439,20 +447,22 @@ class SupabaseAuthBridgeFront {
         if (!$enabled) return;
 
         $sender_name = get_option('sab_welcome_sender_name', get_bloginfo('name'));
-        $subject     = get_option('sab_welcome_subject', '登録ありがとうございます');
-        $body        = get_option('sab_welcome_body', "{site_name} への登録が完了しました。\n\nユーザー: {email}");
+        $sender_email = get_option('sab_welcome_sender_email', get_option('admin_email'));
+
+        // ★修正: デフォルト値を国際化対応 (英語ベース)
+        $subject     = get_option('sab_welcome_subject', __('Registration Thank You', 'supabase-auth-bridge'));
+        // ★修正: デフォルト値を国際化対応 (英語ベース)
+        $body        = get_option('sab_welcome_body', __("Registration to {site_name} is complete.\n\nUser: {email}\n\nLogin here: {login_url}", 'supabase-auth-bridge'));
 
         $replacements = array(
             '{email}'     => $email,
             '{site_name}' => get_bloginfo('name'),
             '{site_url}'  => home_url(),
-            '{login_url}' => wp_login_url(),
         );
 
         $body = str_replace(array_keys($replacements), array_values($replacements), $body);
 
-        $admin_email = get_option('admin_email');
-        $headers = array("From: $sender_name <$admin_email>");
+        $headers = array("From: $sender_name <$sender_email>");
 
         wp_mail($email, $subject, $body, $headers);
     }

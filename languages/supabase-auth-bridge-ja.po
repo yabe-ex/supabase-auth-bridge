@@ -3,7 +3,7 @@ msgstr ""
 "Project-Id-Version: Supabase Auth Bridge\n"
 "Report-Msgid-Bugs-To: \n"
 "POT-Creation-Date: 2026-01-01 14:17+0000\n"
-"PO-Revision-Date: 2026-01-01 14:20+0000\n"
+"PO-Revision-Date: 2026-01-02 03:05+0000\n"
 "Last-Translator: Edel Hearts <info@edel-hearts.com>\n"
 "Language-Team: 日本語\n"
 "Language: ja\n"
@@ -15,11 +15,15 @@ msgstr ""
 "X-Loco-Version: 2.8.0; wp-6.9; php-8.1.23\n"
 "X-Domain: supabase-auth-bridge"
 
-#: inc/class-front.php:390 inc/class-front.php:410
+#: inc/class-admin.php:112
+msgid "Access Supabase once a day to prevent the free project from pausing."
+msgstr "Supabaseの無料プロジェクトが停止しないよう、1日1回アクセスを行います。"
+
+#: inc/class-front.php:397 inc/class-front.php:411
 msgid "Administrator login via Supabase is disabled for security."
 msgstr "セキュリティのため、Supabase経由での管理者ログインは無効化されています。"
 
-#: inc/class-front.php:64
+#: inc/class-front.php:85
 msgid "Authenticating..."
 msgstr "認証中..."
 
@@ -27,19 +31,28 @@ msgstr "認証中..."
 msgid "Authentication Methods"
 msgstr "利用する認証方式"
 
-#: inc/class-front.php:86 inc/class-front.php:218
+#: inc/class-admin.php:121
+msgid "Available placeholders: "
+msgstr "利用可能なプレースホルダー: "
+
+#: inc/class-front.php:107 inc/class-front.php:241
 msgid "Change Password"
 msgstr "パスワードを変更"
 
-#: inc/class-front.php:77
+#: inc/class-front.php:98
 msgid "Check your email"
 msgstr "メールを確認してください"
 
-#: inc/class-front.php:80
+#: inc/class-front.php:101
 msgid "Checking..."
 msgstr "確認中..."
 
-#: inc/class-front.php:76
+#: inc/class-admin.php:120
+msgid ""
+"Configure the automated email sent when a new user registers via Supabase."
+msgstr "Supabase経由で新規ユーザーが登録された際に送信する自動メールを設定します。"
+
+#: inc/class-front.php:97
 msgid "Confirmation email sent. Please check your inbox."
 msgstr "確認メールを送信しました。メールボックスを確認してください。"
 
@@ -47,7 +60,7 @@ msgstr "確認メールを送信しました。メールボックスを確認し
 msgid "Design & Function Settings"
 msgstr "デザイン・機能設定"
 
-#: inc/class-admin.php:75
+#: inc/class-admin.php:99
 msgid "Destination after clicking the link in the reset email."
 msgstr "再設定メール内のリンクをクリックした後の移動先。"
 
@@ -55,90 +68,110 @@ msgstr "再設定メール内のリンクをクリックした後の移動先。
 msgid "Edel Hearts"
 msgstr "Edel Hearts"
 
-#: inc/class-front.php:116 inc/class-front.php:133 inc/class-front.php:164
-#: inc/class-front.php:197
+#: inc/class-front.php:139 inc/class-front.php:156 inc/class-front.php:187
+#: inc/class-front.php:220
 msgid "Email"
 msgstr "メールアドレス"
 
-#: inc/class-admin.php:152
+#: inc/class-admin.php:197
 msgid "Email + Password"
 msgstr "メールアドレス ＋ パスワード"
 
-#: inc/class-front.php:365
+#: inc/class-admin.php:79
+msgid "Email Body"
+msgstr "メール本文"
+
+#: inc/class-front.php:375
 msgid "Email not confirmed. Please check your inbox."
 msgstr "メールアドレスが確認されていません。受信トレイを確認してください。"
 
-#: inc/class-admin.php:154
+#: inc/class-admin.php:199
 msgid "Email OTP / Magic Link (Passwordless)"
 msgstr "メール認証コード / マジックリンク (Passwordless)"
 
-#: inc/class-front.php:231
+#: inc/class-front.php:254
 msgid "Email required"
 msgstr "メールアドレスが必要です"
 
-#: inc/class-admin.php:79
+#: inc/class-admin.php:77
+msgid "Email Subject"
+msgstr "メール件名"
+
+#: inc/class-admin.php:112
+msgid "Enable Keep Alive"
+msgstr "Keep Alive (定期アクセス) を有効化"
+
+#: inc/class-admin.php:72
+msgid "Enable Welcome Email"
+msgstr "ウェルカムメールを有効化"
+
+#: inc/class-admin.php:116
 msgid "Enter the URL path to redirect to after each action completes."
 msgstr "各操作の完了後に移動するページのURLパスを入力してください。"
 
-#: inc/class-front.php:194
+#: inc/class-front.php:217
 msgid ""
 "Enter your registered email address. We will send you a link to reset your "
 "password."
 msgstr "登録したメールアドレスを入力してください。パスワード再設定用のリンクをお送りします。"
 
-#: inc/class-front.php:67
+#: inc/class-front.php:88
 msgid "Error: "
 msgstr "エラー: "
 
-#: inc/class-front.php:397
+#: inc/class-front.php:402
 msgid "Failed to update email."
 msgstr "メールアドレスの更新に失敗しました。"
 
-#: inc/class-admin.php:74
+#: inc/class-admin.php:98
 msgid "Forgot Password Page URL"
 msgstr "パスワード申請ページURL (Forgot PW)"
 
-#: inc/class-front.php:125
+#: inc/class-front.php:148
 msgid "Forgot your password?"
 msgstr "パスワードをお忘れですか？"
 
-#: inc/class-admin.php:153
+#: inc/class-admin.php:198
 msgid "Google Auth (OAuth)"
 msgstr "Google認証 (OAuth)"
 
-#: inc/class-front.php:78
+#: inc/class-front.php:99
 msgid "Google Error: "
 msgstr "Googleエラー: "
 
-#: inc/class-front.php:356
+#: inc/class-front.php:367
 msgid "Invalid Token"
 msgstr "無効なトークンです"
 
-#: inc/class-front.php:369
+#: inc/class-front.php:379
 msgid "Invalid User Data"
 msgstr "ユーザーデータが無効です"
 
-#: inc/class-admin.php:74
+#: inc/class-admin.php:98
 msgid "Link destination for \"Forgot Password?\" on the login screen."
 msgstr "ログイン画面の「パスワードをお忘れですか？」のリンク先。"
 
-#: inc/class-front.php:143
+#: inc/class-front.php:166
 msgid "Log in with Google"
 msgstr "Googleでログイン"
 
-#: inc/class-front.php:79
+#: inc/class-front.php:113
+msgid "Logged in successfully."
+msgstr "ログインしました。"
+
+#: inc/class-front.php:100
 msgid "Logging out..."
 msgstr "ログアウト中..."
 
-#: inc/class-front.php:65 inc/class-front.php:123
+#: inc/class-front.php:86 inc/class-front.php:146
 msgid "Login"
 msgstr "ログイン"
 
-#: inc/class-front.php:71
+#: inc/class-front.php:92
 msgid "Login link (or code) sent to your email."
 msgstr "ログイン用のリンク(またはコード)をメールで送信しました。"
 
-#: inc/class-front.php:186
+#: inc/class-front.php:209
 msgid "Logout"
 msgstr "ログアウト"
 
@@ -146,66 +179,98 @@ msgstr "ログアウト"
 msgid "Main Color"
 msgstr "メインカラー"
 
-#: inc/class-front.php:215
+#: inc/class-admin.php:107
+msgid "Maintenance Settings"
+msgstr "メンテナンス設定"
+
+#: inc/class-front.php:238
 msgid "New Password"
 msgstr "新しいパスワード"
 
-#: inc/class-front.php:345
+#: inc/class-front.php:356
 msgid "No Token"
 msgstr "トークンがありません"
 
-#: inc/class-front.php:129 inc/class-front.php:142 inc/class-front.php:176
+#: inc/class-front.php:152 inc/class-front.php:165 inc/class-front.php:199
 msgid "OR"
 msgstr "または"
 
-#: inc/class-front.php:120 inc/class-front.php:168
+#: inc/class-front.php:143 inc/class-front.php:191
 msgid "Password"
 msgstr "パスワード"
 
-#: inc/class-front.php:87
+#: inc/class-front.php:108
 msgid "Password changed!"
 msgstr "パスワードを変更しました！"
 
-#: inc/class-admin.php:75
+#: inc/class-admin.php:99
 msgid "Password Reset Page URL (New PW)"
 msgstr "パスワード再設定ページURL (New PW)"
 
-#: inc/class-front.php:68
+#: inc/class-front.php:89
 msgid "Please enter your email address."
 msgstr "メールアドレスを入力してください。"
 
-#: inc/class-front.php:84
+#: inc/class-front.php:105
 msgid ""
 "Process completed. If you do not receive an email, please try Google Login."
 msgstr "処理が完了しました。メールが届かない場合はGoogleログインをお試しください。"
 
-#: inc/class-admin.php:71
+#: inc/class-admin.php:95
 msgid "Redirect after Login"
 msgstr "ログイン後の移動先"
 
-#: inc/class-admin.php:72
+#: inc/class-admin.php:96
 msgid "Redirect after Logout"
 msgstr "ログアウト後の移動先"
 
-#: inc/class-admin.php:66
+#: inc/class-admin.php:90
 msgid "Redirect Settings (URL Paths)"
 msgstr "リダイレクト設定 (URLパス)"
 
-#: inc/class-front.php:74 inc/class-front.php:171
+#: inc/class-front.php:95 inc/class-front.php:194
 msgid "Register"
 msgstr "会員登録"
 
-#: inc/class-front.php:177
+#: inc/class-front.php:200
 msgid "Register with Google"
 msgstr "Googleで登録"
 
-#: inc/class-front.php:73
+#: inc/class-front.php:94
 msgid "Registering..."
 msgstr "登録中..."
 
-#: inc/class-front.php:75
+#: inc/class-front.php:96
 msgid "Registration successful! Logging in..."
 msgstr "登録成功！ログインします..."
+
+#: inc/class-front.php:453 inc/class-admin.php:77
+msgid "Registration Thank You"
+msgstr "登録ありがとうございます"
+
+#: inc/class-admin.php:79
+msgid ""
+"Registration to {site_name} is complete.\n"
+"\n"
+"User: {email}"
+msgstr ""
+"{site_name} への登録が完了しました。\n"
+"\n"
+"ユーザー: {email}"
+
+#: inc/class-front.php:455
+msgid ""
+"Registration to {site_name} is complete.\n"
+"\n"
+"User: {email}\n"
+"\n"
+"Login here: {login_url}"
+msgstr ""
+"{site_name} への登録が完了しました。\n"
+"\n"
+"ユーザー: {email}\n"
+"\n"
+"ログインはこちら: {login_url}"
 
 #. Description of the plugin
 msgid ""
@@ -215,39 +280,51 @@ msgstr ""
 "デフォルトのWordPressログインをSupabase認証に置き換えます。マジックリンク、ソーシャルログイン(Google)"
 "、およびWordPressへのユーザー自動同期をサポートしています。"
 
-#: inc/class-front.php:83
+#: inc/class-front.php:104
 msgid "Reset email sent. Please check your inbox."
 msgstr "再設定メールを送信しました。メールボックスを確認してください。"
 
-#: inc/class-front.php:82 inc/class-front.php:200
+#: inc/class-front.php:103 inc/class-front.php:223
 msgid "Send"
 msgstr "送信"
 
-#: inc/class-front.php:70
+#: inc/class-admin.php:72
+msgid "Send a welcome email upon new user registration."
+msgstr "新規ユーザー登録時にウェルカムメールを送信します。"
+
+#: inc/class-front.php:91
 msgid "Send Login Code"
 msgstr "ログインコードを送信"
 
-#: inc/class-front.php:137
+#: inc/class-front.php:160
 msgid "Send Login Code (Passwordless)"
 msgstr "ログインコードを送信 (Passwordless)"
 
-#: inc/class-front.php:69
+#: inc/class-admin.php:74
+msgid "Sender Email"
+msgstr "送信元メールアドレス"
+
+#: inc/class-admin.php:73
+msgid "Sender Name"
+msgstr "送信者名"
+
+#: inc/class-front.php:90
 msgid "Sending..."
 msgstr "送信中..."
 
-#: inc/class-front.php:72
+#: inc/class-front.php:93
 msgid "Sent"
 msgstr "送信完了"
 
-#: inc/class-front.php:212
+#: inc/class-front.php:235
 msgid "Set New Password"
 msgstr "新しいパスワードの設定"
 
-#: inc/class-admin.php:167
+#: inc/class-admin.php:212
 msgid "Settings"
 msgstr "設定"
 
-#: inc/class-front.php:89
+#: inc/class-front.php:110
 msgid "Success! Redirecting..."
 msgstr "成功！移動します..."
 
@@ -263,7 +340,7 @@ msgstr "Supabase API接続設定"
 msgid "Supabase Auth Bridge"
 msgstr "Supabase Auth Bridge"
 
-#: inc/class-admin.php:175
+#: inc/class-admin.php:220
 msgid "Supabase Auth Bridge Settings"
 msgstr "Supabase Auth Bridge 設定"
 
@@ -275,25 +352,25 @@ msgstr "Supabase プロジェクトURL"
 msgid "Supabase Service Role Key"
 msgstr "Supabase Service Role Key"
 
-#: inc/class-front.php:90
+#: inc/class-front.php:111
 msgid "Sync error occurred."
 msgstr "連携エラーが発生しました。"
 
-#: inc/class-front.php:88
+#: inc/class-front.php:109
 msgid "Syncing login..."
 msgstr "ログイン連携中..."
 
-#: inc/class-front.php:66
+#: inc/class-front.php:87
 msgid "Syncing with WordPress..."
 msgstr "WordPressと連携中..."
 
-#: inc/class-front.php:81
+#: inc/class-front.php:102
 msgid ""
 "This email is registered with Google. Please use the \"Log in with Google\" "
 "button."
 msgstr "このメールアドレスはGoogleアカウントで登録されています。「Googleでログイン」ボタンをご利用ください。"
 
-#: inc/class-front.php:85
+#: inc/class-front.php:106
 msgid "Updating..."
 msgstr "更新中..."
 
@@ -303,6 +380,10 @@ msgid ""
 "exposed to frontend)."
 msgstr "Googleログインユーザーの判定およびSupabaseからのユーザー削除に使用されます（フロントエンドには公開されません）。"
 
-#: inc/class-front.php:99 inc/class-front.php:151 inc/class-front.php:190
+#: inc/class-admin.php:67
+msgid "Welcome Email Settings"
+msgstr "ウェルカムメール設定"
+
+#: inc/class-front.php:122 inc/class-front.php:174 inc/class-front.php:213
 msgid "You are already logged in."
 msgstr "既にログインしています。"
