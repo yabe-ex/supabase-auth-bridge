@@ -10,6 +10,9 @@ class SupabaseAuthBridgeFront {
         add_action('wp_ajax_sab_check_provider', array($this, 'ajax_check_provider'));
         add_action('wp_ajax_nopriv_sab_check_provider', array($this, 'ajax_check_provider'));
 
+        // 【追加】WordPressログアウト時のフック
+        add_action('wp_logout', array($this, 'set_logout_cookie'));
+
         // ショートコード登録
         add_shortcode('supabase_login', array($this, 'render_login_form'));
         add_shortcode('supabase_register', array($this, 'render_register_form'));
@@ -18,12 +21,20 @@ class SupabaseAuthBridgeFront {
         add_shortcode('supabase_update_password', array($this, 'render_update_password_form'));
     }
 
+    /**
+     * 【追加】ログアウト時にフラグとなるCookieをセットする
+     */
+    public function set_logout_cookie() {
+        // 1時間有効なCookieをセット（JS側で検知して削除するまで有効）
+        setcookie('sab_force_logout', '1', time() + 3600, '/');
+    }
+
     function front_enqueue() {
         $version  = (defined('SUPABASE_AUTH_BRIDGE_DEVELOP') && true === SUPABASE_AUTH_BRIDGE_DEVELOP) ? time() : SUPABASE_AUTH_BRIDGE_VERSION;
         $strategy = array('in_footer' => true, 'strategy'  => 'defer');
 
         // Supabase JS
-        wp_enqueue_script('supabase-js', 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/dist/umd/supabase.min.js', array(), null, $strategy);
+        wp_enqueue_script('supabase-js', SUPABASE_AUTH_BRIDGE_URL . '/js/lib/supabase.min.js', array(), null, $strategy);
 
         wp_register_style(SUPABASE_AUTH_BRIDGE_SLUG . '-front',  SUPABASE_AUTH_BRIDGE_URL . '/css/front.css', array(), $version);
         wp_register_script(SUPABASE_AUTH_BRIDGE_SLUG . '-front', SUPABASE_AUTH_BRIDGE_URL . '/js/front.js', array('jquery', 'supabase-js'), $version, $strategy);
@@ -47,6 +58,9 @@ class SupabaseAuthBridgeFront {
         $reset_path = get_option('sab_password_reset_url', '/reset-password');
         $reset_full_url = (strpos($reset_path, 'http') === 0) ? $reset_path : home_url($reset_path);
 
+        // 【追加】ログアウトCookieがあるかチェック
+        $trigger_logout = isset($_COOKIE['sab_force_logout']) ? '1' : '0';
+
         // JSに渡すデータ
         $front = array(
             'ajaxurl'       => admin_url('admin-ajax.php'),
@@ -56,6 +70,7 @@ class SupabaseAuthBridgeFront {
             'supabase_url'  => get_option('sab_supabase_url'),
             'supabase_key'  => get_option('sab_supabase_anon_key'),
             'is_logged_in'  => is_user_logged_in() ? "1" : "0",
+            'trigger_logout' => $trigger_logout, // 【追加】JSへログアウト命令を渡す
             'redirect_url'      => $login_redirect,
             'logout_url'        => wp_logout_url($logout_redirect),
             'reset_redirect_to' => $reset_full_url,
@@ -237,15 +252,12 @@ class SupabaseAuthBridgeFront {
             wp_send_json_success(array('provider' => 'unknown'));
         }
 
-        // -------------------------------------------------------------
-        // 戦略1: まずWordPressユーザーとして存在するか確認 (高速化・DoS対策)
-        // -------------------------------------------------------------
+        // 1. まずWordPressユーザーとして存在するか確認
         $user_wp = get_user_by('email', $email);
 
         if ($user_wp) {
             $uuid = get_user_meta($user_wp->ID, 'supabase_uuid', true);
             if ($uuid) {
-                // UUIDがわかればAPIで直接取得できる (ループ不要)
                 $response = wp_remote_get(rtrim($url, '/') . '/auth/v1/admin/users/' . $uuid, array(
                     'headers' => array(
                         'apikey' => $service_key,
@@ -262,19 +274,16 @@ class SupabaseAuthBridgeFront {
                         $provider = $u['identities'][0]['provider'];
                     }
                     wp_send_json_success(array('provider' => $provider));
-                    return; // 終了
+                    return;
                 }
             }
         }
 
-        // -------------------------------------------------------------
-        // 戦略2: WPにいない場合はSupabase全件走査 (人数制限解除・負荷許容)
-        // -------------------------------------------------------------
+        // 2. Supabase全件走査
         $page = 1;
-        $per_page = 1000; // 1回あたりの取得数
+        $per_page = 1000;
         $found_provider = 'unknown';
 
-        // タイムアウト対策（可能な範囲で拡張）
         if (function_exists('set_time_limit')) {
             @set_time_limit(120);
         }
@@ -290,42 +299,36 @@ class SupabaseAuthBridgeFront {
             ));
 
             if (is_wp_error($response)) {
-                break; // 通信エラー等はループ終了
+                break;
             }
 
             $body = json_decode(wp_remote_retrieve_body($response), true);
-
-            // レスポンス形式の確認
             $users = isset($body['users']) ? $body['users'] : (is_array($body) ? $body : array());
 
             if (empty($users)) {
-                break; // ユーザーがいなくなったら終了
+                break;
             }
 
-            // このページ内を検索
             foreach ($users as $u) {
                 if (isset($u['email']) && strtolower($u['email']) === strtolower($email)) {
-                    $found_provider = 'email'; // デフォルト
+                    $found_provider = 'email';
                     if (isset($u['app_metadata']['provider'])) {
                         $found_provider = $u['app_metadata']['provider'];
                     } elseif (isset($u['identities']) && !empty($u['identities'])) {
                         $found_provider = $u['identities'][0]['provider'];
                     }
-                    break 2; // ループを2つ(foreachとdo-while)抜ける
+                    break 2;
                 }
             }
 
-            // 取得件数がper_page未満なら、これ以上ページはないので終了
             if (count($users) < $per_page) {
                 break;
             }
 
             $page++;
-            // サーバー負荷軽減のためわずかに待機
             usleep(50000);
         } while (true);
 
-        // 結果を返す (見つからなければ unknown)
         wp_send_json_success(array('provider' => $found_provider));
     }
 
@@ -347,7 +350,7 @@ class SupabaseAuthBridgeFront {
         $supabase_url = get_option('sab_supabase_url');
         $supabase_key = get_option('sab_supabase_anon_key');
 
-        // 1. Supabaseでトークン検証 & ユーザー情報取得
+        // 1. Supabaseでトークン検証
         $response = wp_remote_get($supabase_url . '/auth/v1/user', array(
             'headers' => array('Authorization' => 'Bearer ' . $access_token, 'apikey' => $supabase_key)
         ));
@@ -360,7 +363,6 @@ class SupabaseAuthBridgeFront {
         $email = isset($user_data->email) ? $user_data->email : '';
         $uuid  = isset($user_data->id) ? $user_data->id : '';
 
-        // [セキュリティ] メール未確認ユーザーはログインさせない
         if (empty($user_data->email_confirmed_at) && empty($user_data->confirmed_at)) {
             return new WP_Error('email_not_confirmed', __('Email not confirmed. Please check your inbox.', 'supabase-auth-bridge'), array('status' => 403));
         }
@@ -369,7 +371,7 @@ class SupabaseAuthBridgeFront {
             return new WP_Error('invalid_user_data', __('Invalid User Data', 'supabase-auth-bridge'), array('status' => 400));
         }
 
-        // 2. WordPressユーザーの検索・同期
+        // 2. WordPressユーザー同期
         $user_query = get_users(array(
             'meta_key' => 'supabase_uuid',
             'meta_value' => $uuid,
@@ -382,15 +384,10 @@ class SupabaseAuthBridgeFront {
         $is_new_user = false;
 
         if ($user) {
-            // 既存ユーザーが見つかった場合
             $user_id = $user->ID;
-
-            // [セキュリティ] 管理者権限を持つユーザーは自動連携ログインを拒否
             if (user_can($user, 'manage_options')) {
                 return new WP_Error('forbidden', __('Administrator login via Supabase is disabled for security.', 'supabase-auth-bridge'), array('status' => 403));
             }
-
-            // Supabase側でメールが変わっていたらWP側も更新
             if (strtolower($user->user_email) !== strtolower($email)) {
                 $updated = wp_update_user(array('ID' => $user_id, 'user_email' => $email));
                 if (is_wp_error($updated)) {
@@ -398,22 +395,15 @@ class SupabaseAuthBridgeFront {
                 }
             }
         } else {
-            // UUIDで見つからない場合、Emailで再検索
             $user_by_email = get_user_by('email', $email);
 
             if ($user_by_email) {
-                // Emailで既存ユーザーが見つかった
                 $user_id = $user_by_email->ID;
-
-                // [セキュリティ] 管理者チェック
                 if (user_can($user_by_email, 'manage_options')) {
                     return new WP_Error('forbidden', __('Administrator login via Supabase is disabled for security.', 'supabase-auth-bridge'), array('status' => 403));
                 }
-
-                // UUIDを紐付け
                 update_user_meta($user_id, 'supabase_uuid', $uuid);
             } else {
-                // 新規ユーザー作成
                 $password = wp_generate_password();
                 $user_id = wp_create_user($email, $password, $email);
 
@@ -423,40 +413,16 @@ class SupabaseAuthBridgeFront {
 
                 $is_new_user = true;
 
-                // 権限設定 (デフォルト: subscriber)
-                // [HOOK] デフォルト権限を変更できるフィルター
                 $role = apply_filters('supabase_auth_bridge_user_role', 'subscriber', $user_data);
-
                 $user_obj = new WP_User($user_id);
                 $user_obj->set_role($role);
-
-                // UUID保存
                 update_user_meta($user_id, 'supabase_uuid', $uuid);
 
-                // 登録完了サンクスメールの送信
-                $blog_name = wp_specialchars_decode(get_option('blogname'), ENT_QUOTES);
-                $subject = sprintf(__('[%s] Registration Complete', 'supabase-auth-bridge'), $blog_name);
-                $message = sprintf(
-                    __('Hi,
-
-Thanks for registering at %s.
-Your account has been successfully created.
-
-You can login here: %s
-
-Thanks,
-%s', 'supabase-auth-bridge'),
-                    $blog_name,
-                    home_url(),
-                    $blog_name
-                );
-
-                wp_mail($email, $subject, $message);
+                // 【メール送信】新規登録時のみ送信
+                $this->send_welcome_email($email, $user_id);
             }
         }
 
-        // [HOOK] 同期完了後のアクションフック (メタデータの保存などに利用可能)
-        // 引数: WPユーザーID, Supabaseユーザーデータ(オブジェクト), 新規登録フラグ
         do_action('supabase_auth_bridge_after_user_sync', $user_id, $user_data, $is_new_user);
 
         // 3. ログイン処理
@@ -465,5 +431,29 @@ Thanks,
         wp_set_auth_cookie($user_id, true);
 
         return rest_ensure_response(array('success' => true));
+    }
+
+    // --- メール送信ヘルパー ---
+    private function send_welcome_email($email, $user_id) {
+        $enabled = get_option('sab_enable_welcome_email');
+        if (!$enabled) return;
+
+        $sender_name = get_option('sab_welcome_sender_name', get_bloginfo('name'));
+        $subject     = get_option('sab_welcome_subject', '登録ありがとうございます');
+        $body        = get_option('sab_welcome_body', "{site_name} への登録が完了しました。\n\nユーザー: {email}");
+
+        $replacements = array(
+            '{email}'     => $email,
+            '{site_name}' => get_bloginfo('name'),
+            '{site_url}'  => home_url(),
+            '{login_url}' => wp_login_url(),
+        );
+
+        $body = str_replace(array_keys($replacements), array_values($replacements), $body);
+
+        $admin_email = get_option('admin_email');
+        $headers = array("From: $sender_name <$admin_email>");
+
+        wp_mail($email, $subject, $body, $headers);
     }
 }

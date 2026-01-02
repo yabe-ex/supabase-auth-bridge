@@ -22,7 +22,6 @@ class SupabaseAuthBridgeAdmin {
 
     function register_settings() {
         // --- 1. API設定 ---
-        // [修正] サニタイズコールバックを追加
         register_setting($this->option_group, 'sab_supabase_url', array('sanitize_callback' => 'esc_url_raw'));
         register_setting($this->option_group, 'sab_supabase_anon_key', array('sanitize_callback' => 'sanitize_text_field'));
         register_setting($this->option_group, 'sab_supabase_service_role_key', array('sanitize_callback' => 'sanitize_text_field'));
@@ -56,8 +55,26 @@ class SupabaseAuthBridgeAdmin {
         add_settings_field('sab_auth_methods', __('Authentication Methods', 'supabase-auth-bridge'), array($this, 'render_field_auth_methods'), 'supabase-auth-bridge', 'sab_design_section');
 
 
-        // --- 3. リダイレクト設定 ---
-        // [修正] URLパス用のサニタイズ (sanitize_text_field で十分だが、入力ミス防止のため)
+        // --- 3. 登録完了メール設定 (新規追加) ---
+        register_setting($this->option_group, 'sab_enable_welcome_email');
+        register_setting($this->option_group, 'sab_welcome_sender_name', array('sanitize_callback' => 'sanitize_text_field'));
+        register_setting($this->option_group, 'sab_welcome_subject', array('sanitize_callback' => 'sanitize_text_field'));
+        register_setting($this->option_group, 'sab_welcome_body', array('sanitize_callback' => 'wp_kses_post')); // HTMLタグを一部許可
+
+        add_settings_section(
+            'sab_email_section',
+            __('Welcome Email Settings', 'supabase-auth-bridge'),
+            array($this, 'email_section_desc'),
+            'supabase-auth-bridge'
+        );
+
+        add_settings_field('sab_enable_welcome_email', __('Enable Welcome Email', 'supabase-auth-bridge'), array($this, 'render_checkbox_simple'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_enable_welcome_email', 'label' => __('Send a welcome email upon new user registration.', 'supabase-auth-bridge')));
+        add_settings_field('sab_welcome_sender_name', __('Sender Name', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_sender_name', 'placeholder' => get_bloginfo('name')));
+        add_settings_field('sab_welcome_subject', __('Email Subject', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_subject', 'default' => '登録ありがとうございます'));
+        add_settings_field('sab_welcome_body', __('Email Body', 'supabase-auth-bridge'), array($this, 'render_textarea'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_body', 'default' => "{site_name} への登録が完了しました。\n\nユーザー: {email}\n\nログインはこちら: {login_url}"));
+
+
+        // --- 4. リダイレクト設定 ---
         register_setting($this->option_group, 'sab_redirect_after_login', array('sanitize_callback' => 'sanitize_text_field'));
         register_setting($this->option_group, 'sab_redirect_after_logout', array('sanitize_callback' => 'sanitize_text_field'));
         register_setting($this->option_group, 'sab_forgot_password_url', array('sanitize_callback' => 'sanitize_text_field'));
@@ -81,6 +98,11 @@ class SupabaseAuthBridgeAdmin {
         echo '<p>' . esc_html__('Enter the URL path to redirect to after each action completes.', 'supabase-auth-bridge') . '</p>';
     }
 
+    function email_section_desc() {
+        echo '<p>' . esc_html__('Configure the automated email sent when a new user registers via Supabase.', 'supabase-auth-bridge') . '<br>' .
+            __('Available placeholders: ', 'supabase-auth-bridge') . '<code>{email}</code>, <code>{site_name}</code>, <code>{login_url}</code>, <code>{site_url}</code></p>';
+    }
+
     // --- ユーザー削除時の同期処理 ---
     function handle_delete_user($user_id) {
         $supabase_uuid = get_user_meta($user_id, 'supabase_uuid', true);
@@ -93,13 +115,13 @@ class SupabaseAuthBridgeAdmin {
         $service_key = get_option('sab_supabase_service_role_key');
 
         if (!$url || !$service_key) {
-            error_log('Supabase Auth Bridge: Service Role Key is missing. Could not delete user from Supabase.');
+            // キーがない場合は削除できないが、WP側は削除させる
             return;
         }
 
         $api_url = rtrim($url, '/') . '/auth/v1/admin/users/' . $supabase_uuid;
 
-        $response = wp_remote_request($api_url, array(
+        wp_remote_request($api_url, array(
             'method' => 'DELETE',
             'headers' => array(
                 'apikey' => $service_key,
@@ -107,28 +129,19 @@ class SupabaseAuthBridgeAdmin {
                 'Content-Type' => 'application/json'
             )
         ));
-
-        if (is_wp_error($response)) {
-            error_log('Supabase Auth Bridge: Error deleting user - ' . $response->get_error_message());
-        } else {
-            $code = wp_remote_retrieve_response_code($response);
-            if ($code >= 400) {
-                $body = wp_remote_retrieve_body($response);
-                error_log("Supabase Auth Bridge: Failed to delete user (Status: $code) - $body");
-            }
-        }
     }
 
-    // テキストフィールド
+    // --- レンダリング用ヘルパー ---
+
     function render_field_text($args) {
         $name = $args['name'];
         $placeholder = isset($args['placeholder']) ? $args['placeholder'] : '';
-        $value = get_option($name);
+        $default = isset($args['default']) ? $args['default'] : '';
+        $value = get_option($name, $default);
         echo '<input type="text" name="' . esc_attr($name) . '" value="' . esc_attr($value) . '" class="regular-text" placeholder="' . esc_attr($placeholder) . '">';
         if (isset($args['desc'])) echo '<p class="description">' . esc_html($args['desc']) . '</p>';
     }
 
-    // パスワードフィールド
     function render_field_password($args) {
         $name = $args['name'];
         $value = get_option($name);
@@ -136,7 +149,6 @@ class SupabaseAuthBridgeAdmin {
         if (isset($args['desc'])) echo '<p class="description">' . esc_html($args['desc']) . '</p>';
     }
 
-    // カラーピッカー
     function render_field_color($args) {
         $name = $args['name'];
         $default = isset($args['default']) ? $args['default'] : '#0073aa';
@@ -144,7 +156,20 @@ class SupabaseAuthBridgeAdmin {
         echo '<input type="text" name="' . esc_attr($name) . '" value="' . esc_attr($value) . '" class="sab-color-field" data-default-color="' . esc_attr($default) . '">';
     }
 
-    // 認証方式チェックボックス
+    function render_checkbox_simple($args) {
+        $name = $args['name'];
+        $label = isset($args['label']) ? $args['label'] : '';
+        $value = get_option($name);
+        echo '<label><input type="checkbox" name="' . esc_attr($name) . '" value="1" ' . checked($value, 1, false) . '> ' . esc_html($label) . '</label>';
+    }
+
+    function render_textarea($args) {
+        $name = $args['name'];
+        $default = isset($args['default']) ? $args['default'] : '';
+        $value = get_option($name, $default);
+        echo '<textarea name="' . esc_attr($name) . '" rows="10" cols="50" class="large-text code">' . esc_textarea($value) . '</textarea>';
+    }
+
     function render_field_auth_methods() {
         $email = get_option('sab_auth_method_email');
         $google = get_option('sab_auth_method_google');

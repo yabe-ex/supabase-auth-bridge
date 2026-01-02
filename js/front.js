@@ -7,7 +7,19 @@ jQuery(document).ready(function ($) {
 
     const { createClient } = window.supabase;
     const supabase = createClient(sab_vars.supabase_url, sab_vars.supabase_key);
-    const i18n = sab_vars.i18n; // 翻訳オブジェクトのショートカット
+    const i18n = sab_vars.i18n;
+
+    // ---------------------------
+    // 【追加】強制ログアウト処理
+    // ---------------------------
+    // WordPress側でログアウト処理が行われた場合、Cookie経由でフラグが渡される
+    if (sab_vars.trigger_logout === '1') {
+        console.log('WP Logout detected -> Signing out from Supabase...');
+        supabase.auth.signOut().then(() => {
+            // ループ防止のためCookieを削除
+            document.cookie = 'sab_force_logout=; Path=/; Expires=Thu, 01 Jan 1970 00:00:01 GMT;';
+        });
+    }
 
     // ヘルパー: メッセージ表示
     function showMsg(elem, text, isError = false) {
@@ -113,7 +125,7 @@ jQuery(document).ready(function ($) {
     });
 
     // ---------------------------
-    // 5. ログアウト
+    // 5. ログアウト (ボタンクリック時)
     // ---------------------------
     $('#sab-logout-button').on('click', async function (e) {
         e.preventDefault();
