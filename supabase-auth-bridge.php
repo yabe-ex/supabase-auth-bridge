@@ -6,7 +6,7 @@
  * Description: Replace the default WordPress login with Supabase Authentication. Supports Magic Links, Social Login (Google), and auto-syncs users to WordPress.
  * Version: 1.0.0
  * Author: Edel Hearts
- * Author URI:
+ * Author URI: https://edel-hearts.com/
  * License: GPLv2 or later
  * License URI: https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain: supabase-auth-bridge
@@ -16,14 +16,12 @@
 // Exit if accessed directly.
 if (!defined('ABSPATH')) exit();
 
-$info = get_file_data(__FILE__, array('plugin_name' => 'Plugin Name', 'version' => 'Version'));
-
 define('SUPABASE_AUTH_BRIDGE_URL', plugins_url('', __FILE__));
 define('SUPABASE_AUTH_BRIDGE_PATH', dirname(__FILE__));
-define('SUPABASE_AUTH_BRIDGE_NAME', $info['plugin_name']);
+define('SUPABASE_AUTH_BRIDGE_NAME', 'Supabase Auth Bridge');
 define('SUPABASE_AUTH_BRIDGE_SLUG', 'supabase-auth-bridge');
 define('SUPABASE_AUTH_BRIDGE_PREFIX', 'supabase_auth_bridge_');
-define('SUPABASE_AUTH_BRIDGE_VERSION', $info['version']);
+define('SUPABASE_AUTH_BRIDGE_VERSION', '1.0.0');
 define('SUPABASE_AUTH_BRIDGE_DEVELOP', false);
 
 class SupabaseAuthBridge {
@@ -51,22 +49,28 @@ class SupabaseAuthBridge {
     }
 }
 
-$instance = new SupabaseAuthBridge();
-$instance->init();
+/**
+ * グローバル汚染を防ぐため関数でラップして実行
+ */
+function supabase_auth_bridge_run() {
+    $instance = new SupabaseAuthBridge();
+    $instance->init();
+}
+supabase_auth_bridge_run();
 
 // --- Cronスケジュールの登録・解除 ---
 
 // プラグイン有効化時にスケジュール登録
-register_activation_hook(__FILE__, 'sab_activate_cron');
-function sab_activate_cron() {
+register_activation_hook(__FILE__, 'supabase_auth_bridge_activate_cron');
+function supabase_auth_bridge_activate_cron() {
     if (!wp_next_scheduled('sab_cron_keep_alive')) {
         wp_schedule_event(time(), 'daily', 'sab_cron_keep_alive');
     }
 }
 
 // プラグイン無効化時にスケジュール解除
-register_deactivation_hook(__FILE__, 'sab_deactivate_cron');
-function sab_deactivate_cron() {
+register_deactivation_hook(__FILE__, 'supabase_auth_bridge_deactivate_cron');
+function supabase_auth_bridge_deactivate_cron() {
     $timestamp = wp_next_scheduled('sab_cron_keep_alive');
     if ($timestamp) {
         wp_unschedule_event($timestamp, 'sab_cron_keep_alive');

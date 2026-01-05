@@ -40,9 +40,10 @@ class SupabaseAuthBridgeAdmin {
 
         // --- 2. デザイン・機能設定 ---
         register_setting($this->option_group, 'sab_main_color', array('sanitize_callback' => 'sanitize_hex_color'));
-        register_setting($this->option_group, 'sab_auth_method_email');
-        register_setting($this->option_group, 'sab_auth_method_google');
-        register_setting($this->option_group, 'sab_auth_method_magiclink');
+        // チェックボックス用サニタイズ (absint)
+        register_setting($this->option_group, 'sab_auth_method_email', array('sanitize_callback' => 'absint'));
+        register_setting($this->option_group, 'sab_auth_method_google', array('sanitize_callback' => 'absint'));
+        register_setting($this->option_group, 'sab_auth_method_magiclink', array('sanitize_callback' => 'absint'));
 
         add_settings_section(
             'sab_design_section',
@@ -56,7 +57,7 @@ class SupabaseAuthBridgeAdmin {
 
 
         // --- 3. 登録完了メール設定 ---
-        register_setting($this->option_group, 'sab_enable_welcome_email');
+        register_setting($this->option_group, 'sab_enable_welcome_email', array('sanitize_callback' => 'absint'));
         register_setting($this->option_group, 'sab_welcome_sender_name', array('sanitize_callback' => 'sanitize_text_field'));
         register_setting($this->option_group, 'sab_welcome_sender_email', array('sanitize_callback' => 'sanitize_email'));
         register_setting($this->option_group, 'sab_welcome_subject', array('sanitize_callback' => 'sanitize_text_field'));
@@ -73,9 +74,9 @@ class SupabaseAuthBridgeAdmin {
         add_settings_field('sab_welcome_sender_name', __('Sender Name', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_sender_name', 'placeholder' => get_bloginfo('name')));
         add_settings_field('sab_welcome_sender_email', __('Sender Email', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_sender_email', 'placeholder' => get_option('admin_email')));
 
-        // ★修正: デフォルト値を国際化対応 (英語ベース)
         add_settings_field('sab_welcome_subject', __('Email Subject', 'supabase-auth-bridge'), array($this, 'render_field_text'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_subject', 'default' => __('Registration Thank You', 'supabase-auth-bridge')));
-        // ★修正: デフォルト値を国際化対応 (英語ベース)
+
+        // ★修正: デフォルト値から {login_url} を削除
         add_settings_field('sab_welcome_body', __('Email Body', 'supabase-auth-bridge'), array($this, 'render_textarea'), 'supabase-auth-bridge', 'sab_email_section', array('name' => 'sab_welcome_body', 'default' => __("Registration to {site_name} is complete.\n\nUser: {email}", 'supabase-auth-bridge')));
 
 
@@ -100,7 +101,7 @@ class SupabaseAuthBridgeAdmin {
 
 
         // --- 5. メンテナンス設定 (Keep Alive) ---
-        register_setting($this->option_group, 'sab_enable_keep_alive');
+        register_setting($this->option_group, 'sab_enable_keep_alive', array('sanitize_callback' => 'absint'));
 
         add_settings_section(
             'sab_maintenance_section',
@@ -117,8 +118,9 @@ class SupabaseAuthBridgeAdmin {
     }
 
     function email_section_desc() {
+        // ★修正: 出力をエスケープ
         echo '<p>' . esc_html__('Configure the automated email sent when a new user registers via Supabase.', 'supabase-auth-bridge') . '<br>' .
-            __('Available placeholders: ', 'supabase-auth-bridge') . '<code>{email}</code>, <code>{site_name}</code>, <code>{site_url}</code></p>';
+            esc_html__('Available placeholders: ', 'supabase-auth-bridge') . '<code>{email}</code>, <code>{site_name}</code>, <code>{site_url}</code></p>';
     }
 
     // --- ユーザー削除時の同期処理 ---

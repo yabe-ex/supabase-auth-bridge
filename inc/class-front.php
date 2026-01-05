@@ -39,8 +39,8 @@ class SupabaseAuthBridgeFront {
         $version  = (defined('SUPABASE_AUTH_BRIDGE_DEVELOP') && true === SUPABASE_AUTH_BRIDGE_DEVELOP) ? time() : SUPABASE_AUTH_BRIDGE_VERSION;
         $strategy = array('in_footer' => true, 'strategy'  => 'defer');
 
-        // Supabase JS
-        wp_enqueue_script('supabase-js', SUPABASE_AUTH_BRIDGE_URL . '/js/lib/supabase.min.js', array(), null, $strategy);
+        // Supabase JS (バージョン指定を追加)
+        wp_enqueue_script('supabase-js', SUPABASE_AUTH_BRIDGE_URL . '/js/lib/supabase.min.js', array(), '2.89.0', $strategy);
 
         wp_register_style(SUPABASE_AUTH_BRIDGE_SLUG . '-front',  SUPABASE_AUTH_BRIDGE_URL . '/css/front.css', array(), $version);
         wp_register_script(SUPABASE_AUTH_BRIDGE_SLUG . '-front', SUPABASE_AUTH_BRIDGE_URL . '/js/front.js', array('jquery', 'supabase-js'), $version, $strategy);
@@ -109,8 +109,10 @@ class SupabaseAuthBridgeFront {
                 'sync_login' => __('Syncing login...', 'supabase-auth-bridge'),
                 'success_redirect' => __('Success! Redirecting...', 'supabase-auth-bridge'),
                 'sync_error' => __('Sync error occurred.', 'supabase-auth-bridge'),
-                // ★追加: トースト通知のメッセージ
                 'logged_in' => __('Logged in successfully.', 'supabase-auth-bridge'),
+                'weak_password' => __('Password is too weak (8+ chars, A-Z, a-z, 0-9 required)', 'supabase-auth-bridge'),
+                'strong_password' => __('OK', 'supabase-auth-bridge'),
+                'show_password' => __('Show Password', 'supabase-auth-bridge'),
             )
         );
         wp_localize_script(SUPABASE_AUTH_BRIDGE_SLUG . '-front', 'sab_vars', $front);
@@ -118,8 +120,10 @@ class SupabaseAuthBridgeFront {
 
     // --- フォーム描画 ---
 
-    function render_login_form() {
+    function render_login_form($atts) {
         if (is_user_logged_in()) return '<p>' . __('You are already logged in.', 'supabase-auth-bridge') . '</p>';
+
+        $atts = shortcode_atts(array('redirect_to' => ''), $atts);
 
         $use_email = get_option('sab_auth_method_email');
         $use_google = get_option('sab_auth_method_google');
@@ -130,7 +134,7 @@ class SupabaseAuthBridgeFront {
 
         ob_start();
 ?>
-        <div id="sab-login-container" class="sab-container">
+        <div id="sab-login-container" class="sab-container" data-redirect-to="<?php echo esc_attr($atts['redirect_to']); ?>">
             <div id="sab-message" class="sab-message" style="display:none;"></div>
 
             <?php if ($use_email): ?>
@@ -141,7 +145,15 @@ class SupabaseAuthBridgeFront {
                     </div>
                     <div class="sab-form-group">
                         <label for="sab-password"><?php esc_html_e('Password', 'supabase-auth-bridge'); ?></label>
-                        <input type="password" id="sab-password" class="sab-input" required>
+                        <div class="sab-password-wrapper">
+                            <input type="password" id="sab-password" class="sab-input" required>
+                            <button type="button" class="sab-password-toggle" title="<?php esc_attr_e('Show Password', 'supabase-auth-bridge'); ?>">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
                     </div>
                     <button type="submit" id="sab-submit" class="sab-btn sab-btn-primary"><?php esc_html_e('Login', 'supabase-auth-bridge'); ?></button>
                 </form>
@@ -149,7 +161,7 @@ class SupabaseAuthBridgeFront {
             <?php endif; ?>
 
             <?php if ($use_magic): ?>
-                <?php if ($use_email) echo '<div class="sab-divider"><span>' . __('OR', 'supabase-auth-bridge') . '</span></div>'; ?>
+                <?php if ($use_email) echo '<div class="sab-divider"><span>' . esc_html__('OR', 'supabase-auth-bridge') . '</span></div>'; ?>
                 <div id="sab-magic-section">
                     <?php if (!$use_email): ?>
                         <div class="sab-form-group">
@@ -162,7 +174,7 @@ class SupabaseAuthBridgeFront {
             <?php endif; ?>
 
             <?php if ($use_google): ?>
-                <?php if ($use_email || $use_magic) echo '<div class="sab-divider"><span>' . __('OR', 'supabase-auth-bridge') . '</span></div>'; ?>
+                <?php if ($use_email || $use_magic) echo '<div class="sab-divider"><span>' . esc_html__('OR', 'supabase-auth-bridge') . '</span></div>'; ?>
                 <button type="button" id="sab-google-login" class="sab-btn sab-btn-google"><?php esc_html_e('Log in with Google', 'supabase-auth-bridge'); ?></button>
             <?php endif; ?>
         </div>
@@ -170,15 +182,17 @@ class SupabaseAuthBridgeFront {
         return ob_get_clean();
     }
 
-    function render_register_form() {
+    function render_register_form($atts) {
         if (is_user_logged_in()) return '<p>' . __('You are already logged in.', 'supabase-auth-bridge') . '</p>';
+
+        $atts = shortcode_atts(array('redirect_to' => ''), $atts);
 
         $use_email = get_option('sab_auth_method_email');
         $use_google = get_option('sab_auth_method_google');
 
         ob_start();
     ?>
-        <div id="sab-register-container" class="sab-container">
+        <div id="sab-register-container" class="sab-container" data-redirect-to="<?php echo esc_attr($atts['redirect_to']); ?>">
             <div id="sab-reg-message" class="sab-message" style="display:none;"></div>
 
             <?php if ($use_email): ?>
@@ -189,14 +203,23 @@ class SupabaseAuthBridgeFront {
                     </div>
                     <div class="sab-form-group">
                         <label for="sab-reg-password"><?php esc_html_e('Password', 'supabase-auth-bridge'); ?></label>
-                        <input type="password" id="sab-reg-password" class="sab-input" required>
+                        <div class="sab-password-wrapper">
+                            <input type="password" id="sab-reg-password" class="sab-input sab-password-check" required>
+                            <button type="button" class="sab-password-toggle" title="<?php esc_attr_e('Show Password', 'supabase-auth-bridge'); ?>">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                    <circle cx="12" cy="12" r="3"></circle>
+                                </svg>
+                            </button>
+                        </div>
+                        <div id="sab-reg-strength" class="sab-strength-meter"></div>
                     </div>
                     <button type="submit" id="sab-reg-submit" class="sab-btn sab-btn-primary"><?php esc_html_e('Register', 'supabase-auth-bridge'); ?></button>
                 </form>
             <?php endif; ?>
 
             <?php if ($use_google): ?>
-                <?php if ($use_email) echo '<div class="sab-divider"><span>' . __('OR', 'supabase-auth-bridge') . '</span></div>'; ?>
+                <?php if ($use_email) echo '<div class="sab-divider"><span>' . esc_html__('OR', 'supabase-auth-bridge') . '</span></div>'; ?>
                 <button type="button" class="sab-btn sab-btn-google sab-google-login-btn" onclick="document.getElementById('sab-google-login').click()"><?php esc_html_e('Register with Google', 'supabase-auth-bridge'); ?></button>
             <?php endif; ?>
         </div>
@@ -206,7 +229,9 @@ class SupabaseAuthBridgeFront {
 
     function render_logout_button() {
         if (!is_user_logged_in()) return '';
-        return '<button id="sab-logout-button" class="sab-btn sab-btn-secondary">' . __('Logout', 'supabase-auth-bridge') . '</button>';
+        return '<div class="sab-container">' .
+            '<button id="sab-logout-button" class="sab-btn sab-btn-primary">' . __('Logout', 'supabase-auth-bridge') . '</button>' .
+            '</div>';
     }
 
     function render_forgot_password_form() {
@@ -236,7 +261,16 @@ class SupabaseAuthBridgeFront {
             <form id="sab-update-password-form">
                 <div class="sab-form-group">
                     <label for="sab-new-password"><?php esc_html_e('New Password', 'supabase-auth-bridge'); ?></label>
-                    <input type="password" id="sab-new-password" class="sab-input" required>
+                    <div class="sab-password-wrapper">
+                        <input type="password" id="sab-new-password" class="sab-input sab-password-check" required>
+                        <button type="button" class="sab-password-toggle" title="<?php esc_attr_e('Show Password', 'supabase-auth-bridge'); ?>">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                                <circle cx="12" cy="12" r="3"></circle>
+                            </svg>
+                        </button>
+                    </div>
+                    <div id="sab-update-strength" class="sab-strength-meter"></div>
                 </div>
                 <button type="submit" id="sab-update-submit" class="sab-btn sab-btn-primary"><?php esc_html_e('Change Password', 'supabase-auth-bridge'); ?></button>
             </form>
@@ -250,7 +284,7 @@ class SupabaseAuthBridgeFront {
     function ajax_check_provider() {
         check_ajax_referer('sab_ajax_nonce', 'nonce');
 
-        $email = isset($_POST['email']) ? sanitize_email($_POST['email']) : '';
+        $email = isset($_POST['email']) ? sanitize_email(wp_unslash($_POST['email'])) : '';
         if (!$email) wp_send_json_error(__('Email required', 'supabase-auth-bridge'));
 
         $url = get_option('sab_supabase_url');
@@ -291,10 +325,6 @@ class SupabaseAuthBridgeFront {
         $page = 1;
         $per_page = 1000;
         $found_provider = 'unknown';
-
-        if (function_exists('set_time_limit')) {
-            @set_time_limit(120);
-        }
 
         do {
             $api_url = rtrim($url, '/') . '/auth/v1/admin/users?page=' . $page . '&per_page=' . $per_page;
@@ -449,15 +479,16 @@ class SupabaseAuthBridgeFront {
         $sender_name = get_option('sab_welcome_sender_name', get_bloginfo('name'));
         $sender_email = get_option('sab_welcome_sender_email', get_option('admin_email'));
 
-        // ★修正: デフォルト値を国際化対応 (英語ベース)
+        // ★修正: デフォルト値を国際化
         $subject     = get_option('sab_welcome_subject', __('Registration Thank You', 'supabase-auth-bridge'));
-        // ★修正: デフォルト値を国際化対応 (英語ベース)
-        $body        = get_option('sab_welcome_body', __("Registration to {site_name} is complete.\n\nUser: {email}\n\nLogin here: {login_url}", 'supabase-auth-bridge'));
+        // ★修正: デフォルト値を国際化
+        $body        = get_option('sab_welcome_body', __("Registration to {site_name} is complete.\n\nUser: {email}", 'supabase-auth-bridge'));
 
         $replacements = array(
             '{email}'     => $email,
             '{site_name}' => get_bloginfo('name'),
             '{site_url}'  => home_url(),
+            '{login_url}' => wp_login_url(),
         );
 
         $body = str_replace(array_keys($replacements), array_values($replacements), $body);

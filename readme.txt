@@ -1,8 +1,8 @@
 === Supabase Auth Bridge ===
 Contributors: edelhearts
-Tags: supabase, authentication, login, membership, google-login, passwordless
+Tags: supabase, authentication, login, membership, google-login
 Requires at least: 6.0
-Tested up to: 6.7
+Tested up to: 6.9
 Stable tag: 1.0.0
 Requires PHP: 7.4
 License: GPLv2 or later
@@ -152,12 +152,3 @@ Use these shortcodes to place forms on your pages:
 
 = 1.0.0 =
 * Initial release.
-* Added support for Email/Password, Magic Link, and Google Login.
-* Implemented "Smart Check" for password resets.
-* Added Logout Synchronization between WordPress and Supabase.
-* Added User Deletion Sync (WP to Supabase).
-* Added security protection for Administrator accounts.
-* Added Welcome Email settings in WordPress (including Sender Name/Email).
-* Added "Keep Alive" feature to prevent Supabase free projects from pausing.
-* Added "Login Success" toast notification on the frontend.
-* Added developer hooks for role customization and metadata syncing.
